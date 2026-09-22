@@ -1,0 +1,2 @@
+@import "tailwindcss";
+:root{color-scheme:light;background:#f7f8fa;color:#17212b} body{margin:0;font-family:Arial,sans-serif}.safe-bottom{padding-bottom:calc(5.5rem + env(safe-area-inset-bottom))}
