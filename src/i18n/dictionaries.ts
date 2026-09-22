@@ -1,21 +1,25 @@
-export const dictionaries = {
-  he: {
-    common:{appName:"WEIG",loading:"טוען…",retry:"נסו שוב",menu:"תפריט",close:"סגירה"},
-    nav:{places:"מקומות",expenses:"הוצאות",calls:"שיחות",ai:"AI",trips:"טיולים",profile:"פרופיל",settings:"הגדרות",signOut:"יציאה"},
-    states:{emptyTitle:"עדיין אין כאן נתונים",emptyBody:"נתונים יופיעו כאן לאחר חיבור והוספה ממקור אמיתי.",errorTitle:"לא הצלחנו לטעון",errorBody:"אירעה שגיאה. אפשר לנסות שוב מאוחר יותר.",offlineTitle:"אין חיבור לאינטרנט",offlineBody:"בדקו את החיבור ונסו שוב.",providerTitle:"הספק עדיין לא מחובר",providerBody:"המסך מוכן, אך נדרשת הגדרה של ספק חדש לפני שניתן להשתמש בו."},
-    modules:{places:"מקומות",expenses:"הוצאות",calls:"שיחות",ai:"עוזר AI"},
-    auth:{title:"כניסה",google:"המשך עם Google",email:"שליחת קוד חד־פעמי",emailLabel:"כתובת אימייל",notConfigured:"האימות עדיין לא הוגדר. יש להוסיף פרטי Supabase חדשים."}
-  },
-  en: {
-    common:{appName:"WEIG",loading:"Loading…",retry:"Try again",menu:"Menu",close:"Close"},
-    nav:{places:"Places",expenses:"Expenses",calls:"Calls",ai:"AI",trips:"Trips",profile:"Profile",settings:"Settings",signOut:"Sign out"},
-    states:{emptyTitle:"No data yet",emptyBody:"Real data will appear here after a source is connected and items are added.",errorTitle:"We couldn’t load this",errorBody:"Something went wrong. Please try again later.",offlineTitle:"You’re offline",offlineBody:"Check your connection and try again.",providerTitle:"Provider isn’t connected",providerBody:"This screen is ready, but a new provider must be configured before it can be used."},
-    modules:{places:"Places",expenses:"Expenses",calls:"Calls",ai:"AI assistant"},
-    auth:{title:"Sign in",google:"Continue with Google",email:"Send one-time code",emailLabel:"Email address",notConfigured:"Authentication is not configured yet. Add the new Supabase project details first."}
-  }
-} as const;
-export type Locale = keyof typeof dictionaries;
-export type Dictionary = (typeof dictionaries)[Locale];
-export const locales = Object.keys(dictionaries) as Locale[];
-export function isLocale(value:string): value is Locale { return locales.includes(value as Locale); }
-export function getDictionary(locale:Locale): Dictionary { return dictionaries[locale]; }
+const he = {
+ common:{appName:"WEIG",primaryNav:"ניווט ראשי",menu:"תפריט",close:"סגירה",demo:"מצב הדגמה",back:"חזרה",save:"שמירה",cancel:"ביטול",notConnected:"השירות החיצוני עדיין לא מחובר"},
+ nav:{places:"מקומות",expenses:"הוצאות",calls:"שיחה",ai:"AI",settings:"הגדרות"},
+ menu:{signedAs:"מחובר/ת בתור",guest:"משתמש/ת בהדגמה",future:"אפשרויות נוספות יופיעו כאן בעתיד"},
+ auth:{artLine:"לתכנן. לשתף. לגלות.",eyebrow:"העולם שלך, במקום אחד",title:"נעים להכיר",subtitle:"נכנסים ל־WEIG ומתחילים לתכנן, לשתף ולגלות.",google:"המשך עם Google",or:"או",email:"כתובת אימייל",emailPlaceholder:"name@example.com",send:"שלחו לי קוד",codeTitle:"בדקו את האימייל",codeBody:"הזינו את הקוד החד־פעמי שנשלח אל",code:"קוד אימות",verify:"אימות וכניסה",change:"שינוי כתובת",terms:"בהמשך, אישרת את תנאי השימוש ומדיניות הפרטיות.",missing:"הכניסה זמינה להדגמת הממשק בלבד עד לחיבור Supabase חדש."},
+ places:{title:"לאן תרצו להגיע?",search:"חיפוש מקום או בקשה בשפה חופשית",examples:"למשל: אוכל כשר בבודפשט",current:"בסביבתי",destination:"ביעד אחר",categories:"מה מחפשים?",results:"הצעות להדגמת הממשק",resultNote:"אלה כרטיסי הדגמה בלבד ואינם תוצאות חיפוש אמיתיות.",cats:["אוכל כשר","בתי כנסת","מלונות","אטרקציות"], cards:[{name:"תצוגת מקום",kind:"אוכל כשר",area:"לפי היעד שבחרתם"},{name:"תצוגת מקום נוספת",kind:"בית כנסת",area:"לפי המיקום המבוקש"}],details:"פרטי המקום",navigate:"פתיחה בניווט",hours:"שעות פתיחה יופיעו לאחר חיבור ספק",location:"מיקום נבחר"},
+ expenses:{title:"הוצאות",total:"סך ההוצאות",personal:"אישי",shared:"משותף",demoList:"רשומות הדגמה",add:"הוספת הוצאה",amount:"סכום",description:"תיאור",paidBy:"מי שילם?",me:"אני",type:"סוג ההוצאה",participants:"משתתפים",each:"לכל משתתף",submit:"הוספת הוצאה",settle:"התחשבנות",balances:"מאזן הקבוצה",settled:"אין כרגע יתרות אמיתיות להצגה",sample:[{name:"ארוחת ערב",amount:"₪240",type:"משותף"},{name:"רכבת",amount:"₪48",type:"אישי"}]},
+ calls:{title:"שיחה",subtitle:"חייגו לאנשי הקשר שלכם מתוך WEIG",number:"מספר טלפון",placeholder:"הקלידו מספר",call:"התחלת שיחה",recent:"שיחות אחרונות",empty:"אין עדיין שיחות",provider:"שיחות יופעלו לאחר חיבור ספק טלפוניה מאושר.",keypad:"לוח חיוג"},
+ ai:{title:"WEIG AI",newChat:"שיחה חדשה",history:"שיחות קודמות",welcome:"איך אפשר לעזור היום?",subtitle:"אפשר לשאול על תכנון, מקומות, הוצאות ושיחות — בכפוף להרשאות שלכם.",placeholder:"כתבו הודעה ל־WEIG AI",send:"שליחה",access:"גישה לנתוני האפליקציה",accessBody:"העוזר יקבל רק מידע שאישרתם ובהתאם לחשבון שלכם.",personal:"התאמה אישית",personalBody:"העדפות יישמרו רק לאחר חיבור מאובטח ואישור מפורש.",empty:"אין עדיין שיחות קודמות",suggestions:["תכנן לי יום טיול","עזור לחלק הוצאה","מצא אוכל כשר"]}
+};
+const en = {
+ common:{appName:"WEIG",primaryNav:"Primary navigation",menu:"Menu",close:"Close",demo:"Demo mode",back:"Back",save:"Save",cancel:"Cancel",notConnected:"The external service is not connected yet"},
+ nav:{places:"Places",expenses:"Expenses",calls:"Call",ai:"AI",settings:"Settings"},
+ menu:{signedAs:"Signed in as",guest:"Demo user",future:"More options may appear here in the future"},
+ auth:{artLine:"Plan. Share. Discover.",eyebrow:"Your world, in one place",title:"Nice to meet you",subtitle:"Sign in to WEIG to plan, share, and discover.",google:"Continue with Google",or:"or",email:"Email address",emailPlaceholder:"name@example.com",send:"Send me a code",codeTitle:"Check your email",codeBody:"Enter the one-time code sent to",code:"Verification code",verify:"Verify and sign in",change:"Change address",terms:"By continuing, you agree to the Terms and Privacy Policy.",missing:"Sign-in is an interface demo only until a new Supabase project is connected."},
+ places:{title:"Where would you like to go?",search:"Search for a place or ask naturally",examples:"For example: kosher food in Budapest",current:"Near me",destination:"Another destination",categories:"What are you looking for?",results:"Interface demonstration suggestions",resultNote:"These are demonstration cards, not real search results.",cats:["Kosher food","Synagogues","Hotels","Attractions"],cards:[{name:"Place preview",kind:"Kosher food",area:"Based on your selected destination"},{name:"Another place preview",kind:"Synagogue",area:"Based on the requested location"}],details:"Place details",navigate:"Open navigation",hours:"Opening hours appear after a provider is connected",location:"Selected location"},
+ expenses:{title:"Expenses",total:"Total expenses",personal:"Personal",shared:"Shared",demoList:"Demo entries",add:"Add expense",amount:"Amount",description:"Description",paidBy:"Who paid?",me:"Me",type:"Expense type",participants:"Participants",each:"Per participant",submit:"Add expense",settle:"Settle up",balances:"Group balance",settled:"There are no real balances to display",sample:[{name:"Dinner",amount:"₪240",type:"Shared"},{name:"Train",amount:"₪48",type:"Personal"}]},
+ calls:{title:"Call",subtitle:"Call your contacts from WEIG",number:"Phone number",placeholder:"Enter a number",call:"Start call",recent:"Recent calls",empty:"No calls yet",provider:"Calling will be enabled after an approved telephony provider is connected.",keypad:"Dial pad"},
+ ai:{title:"WEIG AI",newChat:"New chat",history:"Previous conversations",welcome:"How can I help today?",subtitle:"Ask about planning, places, expenses, and calls — subject to your permissions.",placeholder:"Message WEIG AI",send:"Send",access:"Application data access",accessBody:"The assistant will only receive approved information associated with your account.",personal:"Personalization",personalBody:"Preferences will be saved only after a secure connection and explicit approval.",empty:"No previous conversations yet",suggestions:["Plan a day trip","Help split an expense","Find kosher food"]}
+};
+export const dictionaries={he,en};
+export type Locale=keyof typeof dictionaries; export type Dictionary=(typeof dictionaries)[Locale];
+export const locales=Object.keys(dictionaries) as Locale[];
+export function isLocale(value:string):value is Locale{return locales.includes(value as Locale)}
+export function getDictionary(locale:Locale):Dictionary{return dictionaries[locale]}

@@ -46,3 +46,14 @@ The current UI can be deployed and viewed without Supabase or provider credentia
 4. Visit `/he/places` for Hebrew or `/en/places` for English. Add `?state=loading`, `empty`, `error`, `offline`, or `provider` to review each state.
 
 A successful Vercel build is still required before treating the preview as verified. Provider-backed features and authentication are not expected to work in this preview.
+
+## Milestone 2 interface preview
+
+The four product modules now have complete local, interactive UI previews. Authentication opens first at `/he/auth`; after a future successful authentication the intended landing route is `/he/places`. For design review without a connected auth provider, module URLs can be opened directly.
+
+- **Places:** natural-language search, current-location/destination distinction, categories, clearly labelled demo result cards, and place detail dialog.
+- **Expenses:** total and item views, personal/shared distinction, locally interactive add-expense flow, participant split calculation, and settlement presentation.
+- **Calls:** phone input, interactive keypad, recent-calls empty state, and explicit disconnected-provider messaging without invented telephony behavior.
+- **AI:** full-height conversation workspace, new/history architecture, local conversation continuation, permission and personalization explanations, and explicit disconnected behavior.
+
+All demonstration records are presentation fixtures in the translation dictionaries and are explicitly labelled as demo content. They are never represented as provider results or production records.

@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function Home(){ redirect("/he/places"); }
+export default function Home() { redirect("/he/auth"); }

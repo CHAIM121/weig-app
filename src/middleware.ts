@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
 
   if (!isLocale(candidate)) {
     const url = request.nextUrl.clone();
-    url.pathname = `/${defaultLocale}${request.nextUrl.pathname === "/" ? "/places" : request.nextUrl.pathname}`;
+    url.pathname = `/${defaultLocale}${request.nextUrl.pathname === "/" ? "/auth" : request.nextUrl.pathname}`;
     return NextResponse.redirect(url);
   }
 
