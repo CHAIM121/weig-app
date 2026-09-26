@@ -4,6 +4,7 @@ import { AuthExperience } from "@/components/auth-experience";
 import { ModuleExperience } from "@/components/module-experience";
 import { getDictionary } from "@/i18n/dictionaries";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
 const t = getDictionary("en");
 
 describe("Milestone 2 experiences", () => {
@@ -13,7 +14,7 @@ describe("Milestone 2 experiences", () => {
   });
 
   it("continues email authentication to the OTP state", () => {
-    render(<AuthExperience t={t} />);
+    render(<AuthExperience t={t} locale="en" />);
     fireEvent.change(screen.getByLabelText(t.auth.email), { target: { value: "demo@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: t.auth.send }));
     expect(screen.getByText(t.auth.codeTitle)).toBeInTheDocument();
@@ -24,7 +25,7 @@ describe("Milestone 2 experiences", () => {
     fireEvent.click(screen.getByRole("button", { name: t.expenses.add }));
     fireEvent.change(screen.getByLabelText(t.expenses.amount), { target: { value: "30" } });
     fireEvent.change(screen.getByLabelText(t.expenses.description), { target: { value: "Local preview" } });
-    fireEvent.click(screen.getByRole("button", { name: t.expenses.submit }));
+    fireEvent.click(screen.getByRole("dialog").querySelector("button[type=submit]")!);
     expect(screen.getByText("Local preview")).toBeInTheDocument();
   });
 });
