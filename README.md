@@ -1,5 +1,11 @@
 # WEIG — Milestone 1 foundation
 
+## Israel places search
+
+The Places screen offers 14 concrete Israel categories and searches Google Places (New) through the server-only `/api/places` route. No Google results are bundled or stored. Until `GOOGLE_PLACES_API_KEY` is set on the server, the category browser stays visible and search shows a clear configuration state. Configure the key with Places API (New) enabled and a suitable Google Cloud quota and API restriction; never add it to a `NEXT_PUBLIC_` variable or commit it. Photo media is resolved server-side via `/api/places/photo` and attributed in the UI. The UI does not claim that kosher status, separate swimming hours, or suitability are verified by WEIG.
+
+Google Places content must be displayed with the required Google and photo/provider attributions. Review the current [Google Maps Platform policies](https://developers.google.com/maps/documentation/places/web-service/policies), billing, and your app's public privacy/terms pages before enabling live traffic. The Google Place ID may be stored for user favorites; result details and photos are requested fresh.
+
 A clean Next.js App Router foundation created for this repository. No code, configuration, credentials, database connection, or assets were copied from an earlier project.
 
 ## Milestone 1 scope

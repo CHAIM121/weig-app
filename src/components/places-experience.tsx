@@ -1,48 +1,98 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, X, Clock3, UtensilsCrossed } from "lucide-react";
-import type { Dictionary } from "@/i18n/dictionaries";
+import { useEffect, useState } from "react";
+import { BedDouble, Bookmark, BriefcaseBusiness, CarFront, ChevronLeft, ChevronRight, Coffee, Heart, Images, Landmark, List, MapPin, Mountain, Navigation, Search, ShoppingBasket, Sparkles, Trees, UsersRound, Utensils, Waves, X, Building2, LocateFixed, LoaderCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { placeCategories, placeGroups, type CategoryId } from "@/modules/places/categories";
 
-type Place = { id:string; image:string; he:string; en:string; kindHe:string; kindEn:string; areaHe:string; areaEn:string; descriptionHe:string; descriptionEn:string; maps:string; credit:string; type:"heritage"|"views" };
-const places:Place[]=[
- {id:"bastion",image:"/images/fishermans-bastion.jpg",he:"מצודת הדייגים",en:"Fisherman's Bastion",kindHe:"תצפית · אדריכלות",kindEn:"Views · Architecture",areaHe:"בודה · בודפשט",areaEn:"Buda · Budapest",descriptionHe:"מרפסות אבן ותצפית אל העיר. מקום טוב להתחיל בו יום של הליכה וגלות.",descriptionEn:"Stone terraces with sweeping city views. A beautiful starting point for a day on foot.",maps:"Fisherman's Bastion Budapest",credit:"Attila Pál / Unsplash",type:"views"},
- {id:"synagogue",image:"/images/dohany-synagogue.jpg",he:"בית הכנסת ברחוב דוהאני",en:"Dohány Street Synagogue",kindHe:"מורשת · היסטוריה",kindEn:"Heritage · History",areaHe:"הרובע היהודי · בודפשט",areaEn:"Jewish Quarter · Budapest",descriptionHe:"נקודת ציון ברובע היהודי של בודפשט, עם סיפור ועיצוב יוצאי דופן.",descriptionEn:"A landmark in Budapest's Jewish Quarter with remarkable history and architecture.",maps:"Dohany Street Synagogue Budapest",credit:"Linda Gerbec / Unsplash",type:"heritage"},
- {id:"river",image:"/images/budapest-parliament.jpg",he:"טיילת הדנובה",en:"Danube Promenade",kindHe:"הליכה · נוף עירוני",kindEn:"Walk · City view",areaHe:"מרכז בודפשט",areaEn:"Central Budapest",descriptionHe:"הליכה לצד הנהר מול בניין הפרלמנט וקו הרקיע של העיר.",descriptionEn:"A riverside walk with views of Parliament and the city skyline.",maps:"Danube Promenade Budapest",credit:"Himmel S / Unsplash",type:"views"},
- {id:"city",image:"/images/budapest-city.jpg",he:"גשר השלשלאות",en:"Chain Bridge",kindHe:"סמל העיר · הליכה",kindEn:"Landmark · Walk",areaHe:"מרכז בודפשט",areaEn:"Central Budapest",descriptionHe:"הגשר המחבר בין בודה לפשט ומציע מבט פתוח על העיר והנהר.",descriptionEn:"The bridge between Buda and Pest, opening up views across the city and river.",maps:"Szechenyi Chain Bridge Budapest",credit:"Krisztian Tabori / Unsplash",type:"views"}
-];
-export function PlacesExperience({t}:{t:Dictionary}) {
- const searchParams=useSearchParams();const he=t.places.title==="לאן תרצו להגיע?";const label=(h:string,e:string)=>he?h:e;const arrow=he?<ArrowLeft size={18}/>:<ArrowRight size={18}/>;
- const [query,setQuery]=useState(""),[category,setCategory]=useState<"all"|"heritage"|"views">("all"),[selected,setSelected]=useState<Place|null>(null),[view,setView]=useState<"feed"|"list"|"map">("feed"),[saved,setSaved]=useState<string[]>([]),[locationNote,setLocationNote]=useState(false),[showSaved,setShowSaved]=useState(false);
- useEffect(()=>{setShowSaved(searchParams.get("saved")==="1")},[searchParams]);
- const visible=useMemo(()=>places.filter(p=>(category==="all"||p.type===category)&&(!showSaved||saved.includes(p.id))&&(!query.trim()||`${p.he} ${p.en} ${p.kindHe} ${p.kindEn} ${p.areaHe} ${p.areaEn}`.toLowerCase().includes(query.trim().toLowerCase()))),[category,query,saved,showSaved]);
- useEffect(()=>{try{const value=JSON.parse(localStorage.getItem("weig-saved-places")||"[]");if(Array.isArray(value))setSaved(value.filter((x):x is string=>typeof x==="string"))}catch{}},[]);
- const toggle=(id:string)=>setSaved(v=>{const next=v.includes(id)?v.filter(x=>x!==id):[...v,id];try{localStorage.setItem("weig-saved-places",JSON.stringify(next))}catch{}return next});const title=(p:Place)=>he?p.he:p.en;
- return <div className="discover-app">
-  <div className="discover-topline"><div><span className="discover-eyebrow">{label("מגלים עם WEIG","WEIG DISCOVER")}</span><h1>{label("לגלות", "Discover")}</h1></div><button className="discover-city" onClick={()=>setLocationNote(v=>!v)}><MapPin size={16}/>{label("בודפשט", "Budapest")}<ChevronDown size={15}/></button></div>
-  <div className="discover-search"><Search size={21}/><input value={query} onChange={e=>setQuery(e.target.value)} aria-label={t.places.search} placeholder={label("איזה מקום מתחשק לך לגלות?","What would you like to discover?")}/>{query&&<button aria-label={label("נקה חיפוש","Clear search")} onClick={()=>setQuery("")}><X size={18}/></button>}<button className="discover-search-filter" aria-label={label("הצג סינון","Show filters")} onClick={()=>setCategory(category==="all"?"heritage":"all")}><SlidersHorizontal size={19}/></button></div>
-  {locationNote&&<p className="discover-context" role="status">{label("כעת מוצגות דוגמאות מבודפשט. בחירת יעד ומקומות בסביבה ייפתחו עם חיבור מאגר המקומות.","Budapest is the preview destination. Destination selection and nearby search need the places catalog.")}</p>}
-  <div className="discover-chips" aria-label={t.places.categories}><button aria-pressed={category==="all"} onClick={()=>setCategory("all")}>{label("בשבילי","For you")}</button><button aria-pressed={category==="heritage"} onClick={()=>setCategory("heritage")}>{label("מורשת","Heritage")}</button><button aria-pressed={category==="views"} onClick={()=>setCategory("views")}>{label("נוף וטיול","Views & walks")}</button><button onClick={()=>{setQuery(label("כשר","kosher"));setCategory("all")}}>{label("אוכל כשר","Kosher food")}</button><button onClick={()=>{setQuery(label("מלון","hotel"));setCategory("all")}}>{label("לינה","Stays")}</button></div>
-  <div className={view==="feed"?"discover-editorial feed-mode":"discover-editorial"}><div><span className="discover-overline"><span className="discover-pulse"/>{label("בודפשט, מקרוב", "BUDAPEST, UP CLOSE")}</span><h2>{query?label("תוצאות החיפוש", "Search results"):category==="heritage"?label("סיפורים בדרך", "Stories along the way"):category==="views"?label("לצאת לראות", "Step outside"):label("לאן היום?", "Where to today?")}</h2></div><div className="discover-view-actions"><div className="discover-mode-switch" aria-label={label("צורת תצוגה","View mode")}><button aria-label={label("פיד","Feed")} aria-pressed={view==="feed"} onClick={()=>setView("feed")}><Images size={17}/>{label("פיד","Feed")}</button><button aria-label={label("רשימה","List")} aria-pressed={view==="list"} onClick={()=>setView("list")}><List size={17}/>{label("רשימה","List")}</button><button aria-label={label("מפה","Map")} aria-pressed={view==="map"} onClick={()=>setView("map")}><MapIcon size={17}/>{label("מפה","Map")}</button></div><button className="discover-saved-toggle" aria-pressed={showSaved} onClick={()=>{setShowSaved(v=>!v);setView("feed")}}><Bookmark size={17}/>{label("שמורים", "Saved")}{saved.length>0&&<span>{saved.length}</span>}</button></div></div>
-  {view==="map"?<div className="discover-map-empty"><MapIcon size={36}/><h3>{label("המפה עוד בדרך", "The map is on its way")}</h3><p>{label("כשמאגר המקומות יחובר, נציג כאן מיקומים ומסלולים אמיתיים.","Verified places and routes will appear here when the catalog is connected.")}</p><button onClick={()=>setView("feed")}>{label("חזרה למקומות", "Back to places")}</button></div>:visible.length?view==="feed"?<Feed places={visible} he={he} saved={saved} toggle={toggle} select={setSelected}/>:<ListView places={visible} he={he} saved={saved} toggle={toggle} select={setSelected}/>:<div className="discover-no-results"><Search size={28}/><h3>{showSaved?label("עוד לא שמרת מקומות","No saved places yet"):label("עוד אין כאן תוצאות", "No results here yet")}</h3><p>{showSaved?label("לחצו על הלב ליד מקום שמעניין אתכם כדי לשמור אותו כאן.","Tap the heart on a place to save it here."):label("החיפוש החי יפעל עם חיבור מאגר המקומות. בינתיים אפשר לעיין במקומות שבהדגמה.","Live search needs a connected places catalog. You can explore the preview places for now.")}</p><button onClick={()=>{setQuery("");setCategory("all");setShowSaved(false)}}>{label("להציג את המקומות", "Show preview places")}</button></div>}
-  <p className="discover-disclaimer">{label("תצוגת מוצר לדוגמה. תמונות האתרים אמיתיות; שעות פעילות, מרחק וכשרות אינם מאומתים.","Product preview. Landmark photographs are real; hours, distance and kosher status are not verified.")}</p>
-  {selected&&<div className="discover-detail-wrap"><button className="discover-detail-backdrop" onClick={()=>setSelected(null)} aria-label={t.common.close}/><article className="discover-detail" role="dialog" aria-modal="true" aria-label={title(selected)}><div className="discover-detail-photo"><img src={selected.image} alt={title(selected)}/><button onClick={()=>setSelected(null)} aria-label={t.common.close}><X size={21}/></button><span>{selected.credit}</span></div><div className="discover-detail-body"><span className="discover-eyebrow">{he?selected.kindHe:selected.kindEn}</span><h2>{title(selected)}</h2><p className="discover-detail-area"><MapPin size={16}/>{he?selected.areaHe:selected.areaEn}</p><p>{he?selected.descriptionHe:selected.descriptionEn}</p><div className="discover-facts"><span><Clock3 size={17}/>{label("שעות פתיחה טרם אומתו", "Hours not verified")}</span><span><UtensilsCrossed size={17}/>{label("כשרות טרם אומתה", "Kosher status not verified")}</span></div><div className="discover-detail-actions"><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.maps)}`} target="_blank" rel="noopener noreferrer"><Navigation size={19}/>{label("לפתוח במפות", "Open in Maps")}</a><button aria-label={saved.includes(selected.id)?label("הסר משמורים","Remove saved"):label("שמירת מקום","Save place")} aria-pressed={saved.includes(selected.id)} onClick={()=>toggle(selected.id)}><Bookmark size={19} fill={saved.includes(selected.id)?"currentColor":"none"}/></button></div><small>{label("קישור לחיפוש המקום. יש לבדוק פרטים לפני ההגעה.","Opens a place search. Check details before visiting.")}</small></div></article></div>}
- </div>
-}
+type PlaceResult = {
+  id: string; name: string; address: string; mapsUrl: string;
+  photoName: string | null; photoCredits: { displayName?: string; uri?: string }[];
+  attributions: { provider?: string; providerUri?: string }[];
+  verification: "unverified";
+};
+const icons = { utensils: Utensils, coffee: Coffee, shopping: ShoppingBasket, building: Building2, landmark: Landmark, water: Waves, users: UsersRound, trees: Trees, sparkles: Sparkles, mountain: Mountain, waves: Waves, bed: BedDouble, car: CarFront, briefcase: BriefcaseBusiness };
+const storageKey = "weig-saved-places";
 
-function Feed({places:items,he,saved,toggle,select}:{places:Place[];he:boolean;saved:string[];toggle:(id:string)=>void;select:(place:Place)=>void}){
- const label=(h:string,e:string)=>he?h:e;
- return <div className="discover-feed"><p className="discover-feed-count">{items.length} {label("מקומות לגלות · גללו למקום הבא","places to discover · scroll for the next one")}</p><div className="discover-feed-list">{items.map((place,index)=><article className="discover-feed-card" key={place.id}>
-  <img src={place.image} alt={he?place.he:place.en}/><div className="discover-feed-shade"/>
-  <div className="discover-feed-top"><span><MapPin size={14}/>{he?place.areaHe:place.areaEn}</span><span dir="ltr">{String(index+1).padStart(2,"0")} / {String(items.length).padStart(2,"0")}</span></div>
-  <div className="discover-feed-actions"><button aria-label={`${saved.includes(place.id)?label("הסר משמורים","Remove saved"):label("שמירה","Save")} ${he?place.he:place.en}`} aria-pressed={saved.includes(place.id)} onClick={()=>toggle(place.id)}><Heart size={22} fill={saved.includes(place.id)?"currentColor":"none"}/></button><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.maps)}`} target="_blank" rel="noopener noreferrer" aria-label={`${label("מפות","Maps")} ${he?place.he:place.en}`}><Navigation size={21}/></a></div>
-  <div className="discover-feed-caption"><span>{he?place.kindHe:place.kindEn}</span><h3>{he?place.he:place.en}</h3><p>{he?place.descriptionHe:place.descriptionEn}</p><button onClick={()=>select(place)}>{label("לגלות את המקום","Explore place")}{he?<ArrowLeft size={18}/>:<ArrowRight size={18}/>}</button></div>
-  <small className="discover-feed-credit">{place.credit}</small>
- </article>)}</div></div>
-}
+export function PlacesExperience({ t }: { t: Dictionary }) {
+  const he = t.places.title === "לאן תרצו להגיע?";
+  const label = (hebrew: string, english: string) => he ? hebrew : english;
+  const params = useSearchParams();
+  const [category, setCategory] = useState<CategoryId>("nature");
+  const [city, setCity] = useState(label("ירושלים", "Jerusalem"));
+  const [cityDraft, setCityDraft] = useState(label("ירושלים", "Jerusalem"));
+  const [draft, setDraft] = useState("");
+  const [submitted, setSubmitted] = useState("");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [places, setPlaces] = useState<PlaceResult[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const [notice, setNotice] = useState("");
+  const [view, setView] = useState<"feed" | "list">("feed");
+  const [saved, setSaved] = useState<string[]>([]);
+  const [showSaved, setShowSaved] = useState(false);
+  const [selected, setSelected] = useState<PlaceResult | null>(null);
 
-function ListView({places:items,he,saved,toggle,select}:{places:Place[];he:boolean;saved:string[];toggle:(id:string)=>void;select:(place:Place)=>void}){
- const label=(h:string,e:string)=>he?h:e;
- return <section className="discover-results"><div className="discover-results-heading"><strong>{items.length} {label("מקומות בבודפשט","places in Budapest")}</strong><span>{label("מקומות לדוגמה","Preview places")}</span></div><div className="discover-results-list">{items.map(p=><article className="discover-result" key={p.id}><button className="discover-result-main" onClick={()=>select(p)}><img src={p.image} alt=""/><span className="discover-result-copy"><small>{he?p.kindHe:p.kindEn}</small><strong>{he?p.he:p.en}</strong><span><MapPin size={13}/>{he?p.areaHe:p.areaEn}</span></span>{he?<ChevronLeft size={17}/>:<ChevronRight size={17}/>}</button><button className="discover-result-save" aria-label={`${saved.includes(p.id)?label("הסר משמורים","Remove saved"):label("שמירה","Save")} ${he?p.he:p.en}`} aria-pressed={saved.includes(p.id)} onClick={()=>toggle(p.id)}><Bookmark size={18} fill={saved.includes(p.id)?"currentColor":"none"}/></button></article>)}</div></section>
+  useEffect(() => {
+    try { const data = JSON.parse(localStorage.getItem(storageKey) || "[]"); if (Array.isArray(data)) setSaved(data.filter((id): id is string => typeof id === "string")); } catch { /* Storage may be unavailable. */ }
+  }, []);
+  useEffect(() => { setShowSaved(params.get("saved") === "1"); }, [params]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const search = new URLSearchParams({ category, city: city.trim() || "ירושלים", locale: he ? "he" : "en" });
+    if (submitted) search.set("query", submitted);
+    if (coords) { search.set("lat", String(coords.lat)); search.set("lng", String(coords.lng)); }
+    setStatus("loading");
+    fetch(`/api/places?${search}`, { cache: "no-store", signal: controller.signal })
+      .then(async response => {
+        const payload = await response.json();
+        if (response.status === 503 && payload.error === "PLACES_NOT_CONFIGURED") { setPlaces([]); setStatus("missing"); return; }
+        if (!response.ok || !Array.isArray(payload.places)) throw new Error("Places search failed");
+        setPlaces(payload.places);
+        setStatus("ready");
+      })
+      .catch(error => { if (error.name !== "AbortError") { setPlaces([]); setStatus("error"); } });
+    return () => controller.abort();
+  }, [category, city, coords, submitted, he]);
+
+  const title = submitted || (he ? placeCategories.find(item => item.id === category)?.he : placeCategories.find(item => item.id === category)?.en);
+  const visible = showSaved ? places.filter(place => saved.includes(place.id)) : places;
+  function toggleSaved(id: string) {
+    setSaved(previous => {
+      const next = previous.includes(id) ? previous.filter(item => item !== id) : [...previous, id];
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Keep session state. */ }
+      return next;
+    });
+  }
+  function selectCategory(id: CategoryId) { setCategory(id); setSubmitted(""); setDraft(""); setShowSaved(false); }
+  function useMyLocation() {
+    if (!navigator.geolocation) { setNotice(label("המכשיר לא תומך במיקום.", "Location is unavailable on this device.")); return; }
+    navigator.geolocation.getCurrentPosition(position => {
+      const lat = position.coords.latitude, lng = position.coords.longitude;
+      if (lat < 29.4 || lat > 33.4 || lng < 34.2 || lng > 35.95) { setNotice(label("המיקום שזוהה אינו בישראל. אפשר לבחור עיר בישראל.", "Your location is outside Israel. Choose an Israeli city.")); return; }
+      setCoords({ lat, lng }); setNotice(label("מציגים מקומות בסביבה שלך", "Showing places near you"));
+    }, () => setNotice(label("לא התקבלה הרשאה למיקום. אפשר לחפש לפי עיר.", "Location permission was not granted. Search by city instead.")), { enableHighAccuracy: false, timeout: 10000 });
+  }
+
+  return <div className="places-israel">
+    <section className="israel-intro"><div className="israel-intro-top"><span><MapPin size={16}/>{label("מגלים את ישראל", "EXPLORE ISRAEL")}</span><span>WEIG</span></div><h1>{label("לאן יוצאים היום?", "Where to today?")}</h1><p>{label("המקומות, האנשים והדרכים שכדאי להכיר — קרוב אליך או בכל עיר שתבחר.", "Discover places, people and routes near you or in any Israeli city.")}</p>
+      <form className="israel-search" onSubmit={event => { event.preventDefault(); if (draft.trim().length >= 2) { setCity(cityDraft.trim() || label("ירושלים", "Jerusalem")); setSubmitted(draft.trim()); setShowSaved(false); } else setNotice(label("כדי לחפש, הקלידו לפחות שתי אותיות.", "Enter at least two characters to search.")); }}><Search size={21}/><input value={draft} onChange={event => setDraft(event.target.value)} placeholder={label("מה מחפשים? למשל אוכל כשר ליד מירון", "What are you looking for?")} aria-label={label("חיפוש מקומות", "Search places")}/><button type="submit" aria-label={label("חיפוש", "Search")}>{label("חפשו", "Search")}</button></form>
+    </section>
+    <div className="israel-location"><label>{label("מחפשים באזור", "Search area")}<input value={cityDraft} onChange={event => setCityDraft(event.target.value)} onBlur={() => { if (cityDraft.trim()) { setCity(cityDraft.trim()); setCoords(null); } }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} aria-label={label("עיר או אזור בישראל", "City or area in Israel")} maxLength={60}/></label><button onClick={useMyLocation}><LocateFixed size={18}/>{label("ליד המיקום שלי", "Near me")}</button></div>
+    {notice && <p className="israel-notice" role="status">{notice}<button aria-label={label("סגירה", "Close")} onClick={() => setNotice("")}><X size={16}/></button></p>}
+    <section className="israel-catalog" aria-label={label("קטגוריות מקומות", "Place categories")}><div className="israel-section-heading"><div><span>{label("מה מתחשק לגלות?", "FIND YOUR WAY")}</span><h2>{label("מה מחפשים?", "Explore categories")}</h2></div><span>{placeCategories.length} {label("אפשרויות", "categories")}</span></div>
+      {placeGroups.map(group => <div className="israel-group" key={group.id}><h3>{he ? group.he : group.en}</h3><div className="israel-category-grid">{placeCategories.filter(item => item.group === group.id).map(item => { const Icon = icons[item.icon]; return <button key={item.id} className={category === item.id && !submitted ? "active" : ""} aria-pressed={category === item.id && !submitted} onClick={() => selectCategory(item.id)}><span className="israel-category-icon"><Icon size={21}/></span><span>{he ? item.he : item.en}</span>{he ? <ChevronLeft size={15}/> : <ChevronRight size={15}/>}</button>; })}</div></div>)}
+    </section>
+    <section className="israel-results" aria-live="polite"><div className="israel-section-heading israel-results-head"><div><span>{coords ? label("בסביבה שלך", "NEAR YOU") : city}</span><h2>{title}</h2></div><div className="israel-result-actions"><button aria-label={label("שמורים", "Saved")} aria-pressed={showSaved} onClick={() => setShowSaved(!showSaved)}><Bookmark size={19}/>{saved.length > 0 && saved.length}</button><button aria-label={label("פיד", "Feed")} aria-pressed={view === "feed"} onClick={() => setView("feed")}><Images size={19}/></button><button aria-label={label("רשימה", "List")} aria-pressed={view === "list"} onClick={() => setView("list")}><List size={19}/></button></div></div>
+      {status === "loading" ? <div className="israel-state"><LoaderCircle className="israel-spinner" size={30}/><p>{label("מחפשים מקומות בישראל...", "Finding places in Israel...")}</p></div> : status === "missing" ? <div className="israel-state"><MapPin size={30}/><h3>{label("הקטגוריות מוכנות", "Categories are ready")}</h3><p>{label("כדי להציג כאן מקומות אמיתיים צריך לחבר מפתח Google Places. לא נציג מקומות לדוגמה כתוצאות חיפוש.", "Connect a Google Places key to show real places here. Preview places will not appear as search results.")}</p></div> : status === "error" ? <div className="israel-state"><MapPin size={30}/><h3>{label("לא הצלחנו לטעון מקומות כרגע", "Places couldn't be loaded")}</h3><p>{label("נסו לבחור עיר או קטגוריה אחרת.", "Try another city or category.")}</p></div> : visible.length === 0 ? <div className="israel-state"><Search size={30}/><p>{showSaved ? label("אין מקומות שמורים בתוצאות האלה.", "No saved places in these results.") : label("לא נמצאו מקומות. נסו חיפוש או עיר אחרת.", "No places found. Try another search or city.")}</p></div> : <div className={view === "feed" ? "israel-feed" : "israel-list"}>{visible.map(place => <article className="israel-place" key={place.id}>
+        {place.photoName ? <img className="israel-place-photo" src={`/api/places/photo?name=${encodeURIComponent(place.photoName)}`} alt="" loading="lazy"/> : <div className="israel-place-photo israel-no-photo"><MapPin size={50}/></div>}
+        <div className="israel-place-shade"/><button className="israel-place-save" aria-label={`${saved.includes(place.id) ? label("הסר משמורים", "Remove saved") : label("שמירה", "Save")} ${place.name}`} aria-pressed={saved.includes(place.id)} onClick={() => toggleSaved(place.id)}><Heart size={22} fill={saved.includes(place.id) ? "currentColor" : "none"}/></button>
+        <div className="israel-place-copy"><span>{label("מקום מתוך Google Maps", "Place from Google Maps")}</span><h3>{place.name}</h3><p><MapPin size={15}/>{place.address}</p><div className="israel-place-buttons"><button onClick={() => setSelected(place)}>{label("לפרטי המקום", "Place details")}</button><a href={place.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label={`${label("פתיחה במפות", "Open in Maps")} ${place.name}`}><Navigation size={19}/></a></div></div>
+        {place.photoCredits.length > 0 && <div className="israel-photo-credit">{place.photoCredits.map((credit, i) => credit.uri ? <a key={i} href={credit.uri} target="_blank" rel="noopener noreferrer">{credit.displayName}</a> : <span key={i}>{credit.displayName}</span>)}</div>}
+      </article>)}</div>}
+      {status === "ready" && visible.length > 0 && <div className="israel-google-credit"><img src="/branding/powered-by-google.png" alt="Powered by Google"/><span>{label("פרטים ותמונות: Google Maps. כשרות והתאמה טרם אומתו.", "Details and photos: Google Maps. Kosher status and suitability are not verified.")}</span></div>}
+    </section>
+    {selected && <div className="israel-detail-wrap"><button className="israel-detail-backdrop" aria-label={label("סגירה", "Close")} onClick={() => setSelected(null)}/><section className="israel-detail" role="dialog" aria-modal="true" aria-label={selected.name}><button className="israel-detail-close" aria-label={label("סגירה", "Close")} onClick={() => setSelected(null)}><X size={22}/></button>{selected.photoName && <img src={`/api/places/photo?name=${encodeURIComponent(selected.photoName)}`} alt=""/>}<div className="israel-detail-body"><small>{label("מקום מתוך Google Maps", "Place from Google Maps")}</small><h2>{selected.name}</h2><p>{selected.address}</p><div className="israel-verification"><strong>{label("מידע שדורש אימות", "Information requiring verification")}</strong><span>{label("כשרות, שעות רחצה נפרדת והתאמה לציבור חרדי לא אומתו על ידי WEIG.", "Kosher status, separate swimming hours and suitability have not been verified by WEIG.")}</span></div><a className="israel-open-maps" href={selected.mapsUrl} target="_blank" rel="noopener noreferrer"><Navigation size={18}/>{label("פתחו ב־Google Maps", "Open in Google Maps")}</a>{selected.photoCredits.map((credit, i) => <small key={i}>{credit.uri ? <a href={credit.uri} target="_blank" rel="noopener noreferrer">{credit.displayName}</a> : credit.displayName}</small>)}{selected.attributions.map((item, i) => <small key={i}>{item.providerUri ? <a href={item.providerUri} target="_blank" rel="noopener noreferrer">{item.provider}</a> : item.provider}</small>)}<img className="israel-detail-google" src="/branding/powered-by-google.png" alt="Powered by Google"/></div></section></div>}
+    <footer className="israel-footer"><a href="/privacy">{label("פרטיות", "Privacy")}</a><a href="/terms">{label("תנאי שימוש", "Terms")}</a></footer>
+  </div>;
 }
