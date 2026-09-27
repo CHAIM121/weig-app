@@ -10,9 +10,15 @@ export function LogoMark({ className = "" }: { className?: string }) {
 
 export function Logo() {
   return (
-    <span className="brand" aria-label="WEIG | וועג" dir="ltr">
-      <LogoMark />
-      <span className="brand-word">WEIG</span>
+    <span className="brand" aria-label="WEIG" dir="ltr">
+      <Image
+        className="brand-lockup"
+        src="/branding/weig-logo.png"
+        alt=""
+        width={1266}
+        height={1014}
+        priority
+      />
     </span>
   );
 }
