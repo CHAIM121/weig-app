@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = { themeColor: "#c31e94" };
+export const viewport: Viewport = { themeColor: "#2459e6" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const localeHeader = (await headers()).get("x-weig-locale");
