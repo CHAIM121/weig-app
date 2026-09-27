@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "PLACES_NOT_CONFIGURED" }, { status: 503 });
   try {
-    const url = `https://places.googleapis.com/v1/${name}/media?maxWidthPx=1000&skipHttpRedirect=true&key=${encodeURIComponent(apiKey)}`;
+    const url = `https://places.googleapis.com/v1/${name}/media?maxWidthPx=800&skipHttpRedirect=true&key=${encodeURIComponent(apiKey)}`;
     const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8500) });
     if (!response.ok) throw new Error("Photo unavailable");
     const data = await response.json() as { photoUri?: string };
