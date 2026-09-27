@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import type { Metadata, Viewport } from "next";
 
 import { isLocale } from "@/i18n/dictionaries";
 import { defaultLocale, directionFor } from "@/i18n/routing";
@@ -12,6 +13,20 @@ import "@fontsource/assistant/latin-400.css";
 import "@fontsource/assistant/latin-600.css";
 import "@fontsource/assistant/latin-700.css";
 import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "WEIG | וועג",
+  description: "מקומות, הוצאות, שיחות ותכנון טיול במקום אחד.",
+  applicationName: "WEIG",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "WEIG" },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = { themeColor: "#c31e94" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const localeHeader = (await headers()).get("x-weig-locale");
