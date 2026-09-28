@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, X, Clock3, Phone, Star, Globe2, Expand, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, X, Clock3, Phone, Star, Globe2, MessageCircle } from "lucide-react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useSearchParams } from "next/navigation";
 import { placeCategories, type CategoryId } from "@/modules/places/categories";
@@ -70,12 +70,14 @@ function PlaceGallery({place,photos,he,close}:{place:Place;photos:PlacePhoto[];h
  useEffect(()=>{if(!expanded)return;const key=(event:KeyboardEvent)=>{if(event.key==="Escape")setExpanded(false);if(event.key==="ArrowLeft")setIndex(i=>(i+total-1)%total);if(event.key==="ArrowRight")setIndex(i=>(i+1)%total)};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key)},[expanded,photos.length]);
  const current=photos[index]??photos[0];
  const total=photos.length||1;
- const source=current?`/api/places/photo?name=${encodeURIComponent(current.name)}`:place.image;
  const credits=current?.credits?.length?current.credits:place.photoCredits??[];
  return <div className={expanded?"discover-detail-photo is-expanded":"discover-detail-photo"} onTouchStart={e=>setTouchStart(e.touches[0]?.clientX??null)} onTouchEnd={e=>{if(touchStart===null)return;const delta=e.changedTouches[0].clientX-touchStart;if(Math.abs(delta)>45&&total>1)setIndex(i=>(i+(delta<0?1:total-1))%total);setTouchStart(null)}}>
-  <img src={source} alt={`${he?place.he:place.en} ${index+1}`} decoding="async" onClick={()=>setExpanded(true)}/>
+  <div className="discover-gallery-viewport" onClick={()=>setExpanded(true)} role="button" tabIndex={0} aria-label={he?"הגדלת התמונה למסך מלא":"View photo full screen"} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setExpanded(true)}}}>
+   <div className="discover-gallery-track" dir="ltr" style={{transform:`translate3d(-${index*100}%,0,0)`}}>
+    {photos.length?photos.map((photo,i)=><img key={photo.name} src={`/api/places/photo?name=${encodeURIComponent(photo.name)}`} alt={`${he?place.he:place.en} ${i+1}`} loading={Math.abs(i-index)<=1?"eager":"lazy"} decoding="async"/>):<img src={place.image} alt={he?place.he:place.en} decoding="async"/>}
+   </div>
+  </div>
   <button className="discover-gallery-close" onClick={expanded?()=>setExpanded(false):close} aria-label={expanded?(he?"סגירת תמונה מלאה":"Close full screen"):(he?"סגירה":"Close")}><X size={21}/></button>
-  {!expanded&&<button className="discover-gallery-expand" onClick={()=>setExpanded(true)} aria-label={he?"הגדלת התמונה למסך מלא":"View full screen"}><Expand size={20}/></button>}
   {total>1&&<div className="discover-gallery-dots" dir="ltr" aria-label={he?`${total} תמונות`:`${total} photos`}>{photos.map((_,i)=><button key={i} type="button" aria-label={he?`תמונה ${i+1}`:`Photo ${i+1}`} aria-current={index===i?"true":undefined} onClick={()=>setIndex(i)}/>)}</div>}
   {credits.length>0&&<div className="discover-gallery-credit">{credits.map((credit,i)=>credit.uri?<a key={i} href={credit.uri} target="_blank" rel="noopener noreferrer">{credit.displayName}</a>:<span key={i}>{credit.displayName}</span>)}</div>}
   {current?.mapsUrl&&<a className="discover-gallery-source" href={current.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label={he?"צפייה בתמונה בגוגל מפות":"View photo on Google Maps"}>G</a>}
