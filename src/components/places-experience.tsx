@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, X, Clock3, UtensilsCrossed, Phone, Star, Globe2 } from "lucide-react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useSearchParams } from "next/navigation";
@@ -17,6 +17,7 @@ const places:Place[]=[
 ];
 export function PlacesExperience({t}:{t:Dictionary}) {
  const searchParams=useSearchParams();const he=t.places.title==="לאן תרצו להגיע?";const label=(h:string,e:string)=>he?h:e;const arrow=he?<ArrowLeft size={18}/>:<ArrowRight size={18}/>;
+ const [gallery,setGallery]=useState<{id:string;photos:PlacePhoto[]} | null>(null);
  const [query,setQuery]=useState(""),[category,setCategory]=useState<"all"|CategoryId>("all"),[city,setCity]=useState(he?"ירושלים":"Jerusalem"),[livePlaces,setLivePlaces]=useState<Place[]>([]),[status,setStatus]=useState<"loading"|"ready"|"missing"|"error">("loading"),[selected,setSelected]=useState<Place|null>(null),[view,setView]=useState<"feed"|"list"|"map">("feed"),[saved,setSaved]=useState<string[]>([]),[locationNote,setLocationNote]=useState(false),[showSaved,setShowSaved]=useState(false);
  useEffect(()=>{setShowSaved(searchParams.get("saved")==="1")},[searchParams]);
  useEffect(()=>{const controller=new AbortController();const search=new URLSearchParams({category:category==="all"?"nature":category,city,locale:he?"he":"en"});
@@ -27,6 +28,7 @@ export function PlacesExperience({t}:{t:Dictionary}) {
  const preview=status==="missing"&&category==="all"&&!query.trim();
  const visible=useMemo(()=>(preview?places:livePlaces).filter(p=>(!showSaved||saved.includes(p.id))&&(status!=="missing"||!query.trim()||`${p.he} ${p.en} ${p.kindHe} ${p.areaHe}`.toLowerCase().includes(query.trim().toLowerCase()))),[preview,livePlaces,query,saved,showSaved,status]);
  const activeCategory=placeCategories.find(item=>item.id===category);
+ const receivePhotos=useCallback((id:string,photos:PlacePhoto[])=>setGallery({id,photos}),[]);
  useEffect(()=>{try{const value=JSON.parse(localStorage.getItem("weig-saved-places")||"[]");if(Array.isArray(value))setSaved(value.filter((x):x is string=>typeof x==="string"))}catch{}},[]);
  const toggle=(id:string)=>setSaved(v=>{const next=v.includes(id)?v.filter(x=>x!==id):[...v,id];try{localStorage.setItem("weig-saved-places",JSON.stringify(next))}catch{}return next});const title=(p:Place)=>he?p.he:p.en;
  return <div className="discover-app">
@@ -38,7 +40,7 @@ export function PlacesExperience({t}:{t:Dictionary}) {
   {status==="loading"&&!preview?<p className="discover-context" role="status">{label("מחפשים מקומות בישראל...","Finding places in Israel...")}</p>:status==="missing"&&!preview?<p className="discover-context" role="status">{label("חיבור Google Places עדיין חסר. בחרו ‘בשבילי’ כדי לראות את תצוגת העיצוב המקורית.","Google Places is not connected yet. Choose ‘For you’ to see the original preview.")}</p>:status==="error"?<p className="discover-context" role="status">{label("לא הצלחנו לטעון מקומות כרגע.","Places couldn't be loaded right now.")}</p>:null}
   {view==="map"?<div className="discover-map-empty"><MapIcon size={36}/><h3>{label("המפה עוד בדרך", "The map is on its way")}</h3><p>{label("כשמאגר המקומות יחובר, נציג כאן מיקומים ומסלולים אמיתיים.","Verified places and routes will appear here when the catalog is connected.")}</p><button onClick={()=>setView("feed")}>{label("חזרה למקומות", "Back to places")}</button></div>:visible.length?view==="feed"?<Feed places={visible} he={he} saved={saved} toggle={toggle} select={setSelected}/>:<ListView places={visible} he={he} saved={saved} toggle={toggle} select={setSelected}/>:<div className="discover-no-results"><Search size={28}/><h3>{showSaved?label("עוד לא שמרת מקומות","No saved places yet"):label("עוד אין כאן תוצאות", "No results here yet")}</h3><p>{showSaved?label("לחצו על הלב ליד מקום שמעניין אתכם כדי לשמור אותו כאן.","Tap the heart on a place to save it here."):label("החיפוש החי יפעל עם חיבור מאגר המקומות. בינתיים אפשר לעיין במקומות שבהדגמה.","Live search needs a connected places catalog. You can explore the preview places for now.")}</p><button onClick={()=>{setQuery("");setCategory("all");setShowSaved(false)}}>{label("להציג את המקומות", "Show preview places")}</button></div>}
   <p className="discover-disclaimer">{preview?label("תצוגת הדוגמה המקורית מבודפשט. שעות פעילות וכשרות אינם מאומתים.","Original Budapest preview. Hours and kosher status are not verified."):label("מקומות ותמונות מ־Google Maps. כשרות והתאמה אינן מאומתות.","Places and photos from Google Maps. Kosher status and suitability are not verified.")}{status==="ready"&&<img src="/branding/powered-by-google.png" alt="Powered by Google" style={{display:"block",width:110,marginTop:8}}/>}</p>
-  {selected&&<div className="discover-detail-wrap"><button className="discover-detail-backdrop" onClick={()=>setSelected(null)} aria-label={t.common.close}/><article className="discover-detail" role="dialog" aria-modal="true" aria-label={title(selected)}><div className="discover-detail-photo"><img src={selected.image} alt={title(selected)}/><button onClick={()=>setSelected(null)} aria-label={t.common.close}><X size={21}/></button><span>{selected.credit}</span></div><div className="discover-detail-body"><span className="discover-eyebrow">{he?selected.kindHe:selected.kindEn}</span><h2>{title(selected)}</h2><p className="discover-detail-area"><MapPin size={16}/>{he?selected.areaHe:selected.areaEn}</p><p>{he?selected.descriptionHe:selected.descriptionEn}</p>{selected.mapsUrl?<PlaceLiveDetails id={selected.id} mapsUrl={mapsLink(selected)} he={he}/>:<div className="discover-facts"><span><Clock3 size={17}/>{label("שעות פתיחה טרם אומתו", "Hours not verified")}</span><span><UtensilsCrossed size={17}/>{label("כשרות טרם אומתה", "Kosher status not verified")}</span></div>}<div className="discover-detail-actions"><a href={mapsLink(selected)} target="_blank" rel="noopener noreferrer"><Navigation size={19}/>{label("לפתוח במפות", "Open in Maps")}</a><button aria-label={saved.includes(selected.id)?label("הסר משמורים","Remove saved"):label("שמירת מקום","Save place")} aria-pressed={saved.includes(selected.id)} onClick={()=>toggle(selected.id)}><Bookmark size={19} fill={saved.includes(selected.id)?"currentColor":"none"}/></button></div><small>{label("יש לבדוק פרטים לפני ההגעה.","Check details before visiting.")}</small>{selected.photoCredits?.map((credit,i)=><small key={i}>{credit.uri?<a href={credit.uri} target="_blank" rel="noopener noreferrer">{credit.displayName}</a>:credit.displayName}</small>)}{selected.attributions?.map((item,i)=><small key={i}>{item.providerUri?<a href={item.providerUri} target="_blank" rel="noopener noreferrer">{item.provider}</a>:item.provider}</small>)}</div></article></div>}
+  {selected&&<div className="discover-detail-wrap"><button className="discover-detail-backdrop" onClick={()=>setSelected(null)} aria-label={t.common.close}/><article className="discover-detail" role="dialog" aria-modal="true" aria-label={title(selected)}><PlaceGallery place={selected} photos={gallery?.id===selected.id?gallery.photos:[]} he={he} close={()=>setSelected(null)} /><div className="discover-detail-body"><span className="discover-eyebrow">{he?selected.kindHe:selected.kindEn}</span><h2>{title(selected)}</h2><p className="discover-detail-area"><MapPin size={16}/>{he?selected.areaHe:selected.areaEn}</p><p>{he?selected.descriptionHe:selected.descriptionEn}</p>{selected.mapsUrl?<PlaceLiveDetails id={selected.id} mapsUrl={mapsLink(selected)} he={he} onPhotos={receivePhotos}/>:<div className="discover-facts"><span><Clock3 size={17}/>{label("שעות פתיחה טרם אומתו", "Hours not verified")}</span><span><UtensilsCrossed size={17}/>{label("כשרות טרם אומתה", "Kosher status not verified")}</span></div>}<div className="discover-detail-actions"><a href={mapsLink(selected)} target="_blank" rel="noopener noreferrer"><Navigation size={19}/>{label("לפתוח במפות", "Open in Maps")}</a><button aria-label={saved.includes(selected.id)?label("הסר משמורים","Remove saved"):label("שמירת מקום","Save place")} aria-pressed={saved.includes(selected.id)} onClick={()=>toggle(selected.id)}><Bookmark size={19} fill={saved.includes(selected.id)?"currentColor":"none"}/></button></div><small>{label("יש לבדוק פרטים לפני ההגעה.","Check details before visiting.")}</small>{selected.photoCredits?.map((credit,i)=><small key={i}>{credit.uri?<a href={credit.uri} target="_blank" rel="noopener noreferrer">{credit.displayName}</a>:credit.displayName}</small>)}{selected.attributions?.map((item,i)=><small key={i}>{item.providerUri?<a href={item.providerUri} target="_blank" rel="noopener noreferrer">{item.provider}</a>:item.provider}</small>)}</div></article></div>}
  </div>
 }
 
@@ -58,12 +60,30 @@ function ListView({places:items,he,saved,toggle,select}:{places:Place[];he:boole
  return <section className="discover-results"><div className="discover-results-heading"><strong>{items.length} {items[0]?.mapsUrl?label("מקומות בישראל","places in Israel"):label("מקומות בבודפשט","places in Budapest")}</strong><span>{items[0]?.mapsUrl?"Google Maps":label("מקומות לדוגמה","Preview places")}</span></div><div className="discover-results-list">{items.map((p,index)=><article className="discover-result" key={p.id}><button className="discover-result-main" onClick={()=>select(p)}><img src={p.image} alt="" loading={index<3?"eager":"lazy"} decoding="async"/><span className="discover-result-copy"><small>{he?p.kindHe:p.kindEn}</small><strong>{he?p.he:p.en}</strong><span><MapPin size={13}/>{he?p.areaHe:p.areaEn}</span></span>{he?<ChevronLeft size={17}/>:<ChevronRight size={17}/>}</button><button className="discover-result-save" aria-label={`${saved.includes(p.id)?label("הסר משמורים","Remove saved"):label("שמירה","Save")} ${he?p.he:p.en}`} aria-pressed={saved.includes(p.id)} onClick={()=>toggle(p.id)}><Bookmark size={18} fill={saved.includes(p.id)?"currentColor":"none"}/></button></article>)}</div></section>
 }
 
+type PlacePhoto = {name:string;mapsUrl:string|null;credits:{displayName?:string;uri?:string}[]};
+
+function PlaceGallery({place,photos,he,close}:{place:Place;photos:PlacePhoto[];he:boolean;close:()=>void}){
+ const [index,setIndex]=useState(0);
+ useEffect(()=>setIndex(0),[place.id]);
+ const current=photos[index]??photos[0];
+ const total=photos.length||1;
+ const source=current?`/api/places/photo?name=${encodeURIComponent(current.name)}`:place.image;
+ const credits=current?.credits?.length?current.credits:place.photoCredits??[];
+ return <div className="discover-detail-photo">
+  <img src={source} alt={`${he?place.he:place.en} ${index+1}`} decoding="async"/>
+  <button onClick={close} aria-label={he?"סגירה":"Close"}><X size={21}/></button>
+  {total>1&&<div className="discover-gallery-navigation" dir="ltr"><button type="button" aria-label={he?"התמונה הקודמת":"Previous photo"} onClick={()=>setIndex((index+total-1)%total)}><ChevronLeft size={21}/></button><span>{index+1} / {total}</span><button type="button" aria-label={he?"התמונה הבאה":"Next photo"} onClick={()=>setIndex((index+1)%total)}><ChevronRight size={21}/></button></div>}
+  <div className="discover-gallery-credit">{credits.length?credits.map((credit,i)=>credit.uri?<a key={i} href={credit.uri} target="_blank" rel="noopener noreferrer">{credit.displayName}</a>:<span key={i}>{credit.displayName}</span>):place.credit}</div>
+  <a className="discover-gallery-more" href={current?.mapsUrl||mapsLink(place)} target="_blank" rel="noopener noreferrer">{he?"עוד במדיה של Google Maps":"More on Google Maps"}</a>
+ </div>
+}
+
 type LiveDetails = {
  phone:string|null; website:string|null; rating:number|null; ratingCount:number|null;
- openNow:boolean|null; hours:string[]; reviews?:{rating:number|null;text:string;author:string;authorUrl:string|null;authorPhoto:string|null;mapsUrl:string|null;when:string}[];
+ openNow:boolean|null; hours:string[]; photos:PlacePhoto[]; reviews?:{rating:number|null;text:string;author:string;authorUrl:string|null;authorPhoto:string|null;mapsUrl:string|null;when:string}[];
 };
 
-function PlaceLiveDetails({id,mapsUrl,he}:{id:string;mapsUrl:string;he:boolean}){
+function PlaceLiveDetails({id,mapsUrl,he,onPhotos}:{id:string;mapsUrl:string;he:boolean;onPhotos:(id:string,photos:PlacePhoto[])=>void}){
  const label=(h:string,e:string)=>he?h:e;
  const [details,setDetails]=useState<LiveDetails|null>(null);
  const [loading,setLoading]=useState(true);
@@ -74,10 +94,10 @@ function PlaceLiveDetails({id,mapsUrl,he}:{id:string;mapsUrl:string;he:boolean})
  useEffect(()=>{
   const controller=new AbortController();
   fetch(`/api/places/details?id=${encodeURIComponent(id)}&locale=${he?"he":"en"}`,{signal:controller.signal,cache:"no-store"})
-   .then(async response=>{if(!response.ok)throw new Error("Place details unavailable");setDetails(await response.json());setLoading(false)})
+   .then(async response=>{if(!response.ok)throw new Error("Place details unavailable");const data=await response.json() as LiveDetails;setDetails(data);onPhotos(id,data.photos ?? []);setLoading(false)})
    .catch(e=>{if(e.name!=="AbortError"){setError(true);setLoading(false)}});
   return()=>controller.abort();
- },[id,he]);
+ },[id,he,onPhotos]);
  async function loadReviews(){
   setReviewsLoading(true);setReviewsError(false);
   try{const response=await fetch(`/api/places/details?id=${encodeURIComponent(id)}&locale=${he?"he":"en"}&reviews=1`,{cache:"no-store"});if(!response.ok)throw new Error("Reviews unavailable");setDetails(await response.json())}

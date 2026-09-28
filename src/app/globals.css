@@ -171,3 +171,11 @@ body{background:var(--paper);color:var(--ink)}
 .discover-live-review p{white-space:pre-wrap;overflow-wrap:anywhere}
 .discover-live-note{font-size:12px;color:#728087}
 .discover-live-note a{color:#116b79}
+
+/* Keep place photos in the existing hero image, loading one at a time. */
+.discover-detail-photo .discover-gallery-navigation{position:absolute;inset-inline:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+.discover-detail-photo .discover-gallery-navigation button{position:static;pointer-events:auto;border:1px solid #ffffff9a;background:#182b33ae;color:#fff;width:37px;height:37px;border-radius:50%;display:grid;place-items:center}
+.discover-detail-photo .discover-gallery-navigation span{position:static;background:#182b33ae;color:#fff;border-radius:99px;padding:5px 10px;font-size:12px;line-height:1;direction:ltr}
+.discover-gallery-credit{position:absolute;bottom:10px;inset-inline-end:10px;max-width:70%;background:#101c15bd;color:#fff;border-radius:5px;padding:4px 7px;font-size:10px;display:flex;gap:6px;flex-wrap:wrap}
+.discover-gallery-credit a{color:#fff;text-decoration:underline}
+.discover-gallery-more{position:absolute;top:17px;inset-inline-start:14px;background:#182b33bd;color:#fff;border-radius:99px;padding:7px 10px;font-size:10px;text-decoration:none;max-width:55%}

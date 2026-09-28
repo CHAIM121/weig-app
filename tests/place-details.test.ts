@@ -22,11 +22,14 @@ describe("Place details", () => {
     const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({
       id: "ChIJexample", rating: 4.5, userRatingCount: 20, nationalPhoneNumber: "02-1234567",
       currentOpeningHours: { openNow: true, weekdayDescriptions: ["יום ראשון: 9:00–17:00"] },
+      photos: [{ name: "places/ChIJexample/photos/photo_1", authorAttributions: [{ displayName: "Photographer", uri: "https://maps.google.com/profile" }] }],
       reviews: [{ rating: 5, text: { text: "Good" }, authorAttribution: { displayName: "Visitor" } }],
     }), { status: 200 }));
     const base = await GET(new NextRequest("http://localhost/api/places/details?id=ChIJexample"));
     expect(base.status).toBe(200);
-    expect((await base.json()).reviews).toBeUndefined();
+    const baseData = await base.json();
+    expect(baseData.reviews).toBeUndefined();
+    expect(baseData.photos[0].credits[0].displayName).toBe("Photographer");
     expect((fetcher.mock.calls[0][1]?.headers as Record<string, string>)["X-Goog-FieldMask"]).not.toContain("reviews");
 
     const expanded = await GET(new NextRequest("http://localhost/api/places/details?id=ChIJexample&reviews=1"));

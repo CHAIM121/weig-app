@@ -20,6 +20,7 @@ type Details = {
   userRatingCount?: number;
   currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
   googleMapsUri?: string;
+  photos?: { name?: string; googleMapsUri?: string; authorAttributions?: { displayName?: string; uri?: string }[] }[];
   reviews?: Review[];
 };
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   if (!key) return NextResponse.json({ error: "PLACES_NOT_CONFIGURED" }, { status: 503, headers: noStore });
 
   const reviews = params.get("reviews") === "1";
-  const fields = "id,nationalPhoneNumber,websiteUri,rating,userRatingCount,currentOpeningHours,googleMapsUri" + (reviews ? ",reviews" : "");
+  const fields = "id,nationalPhoneNumber,websiteUri,rating,userRatingCount,currentOpeningHours,googleMapsUri,photos" + (reviews ? ",reviews" : "");
   try {
     const response = await fetch(`https://places.googleapis.com/v1/places/${id}?languageCode=${params.get("locale") === "en" ? "en" : "he"}`, {
       headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": fields },
@@ -51,6 +52,11 @@ export async function GET(request: NextRequest) {
       openNow: place.currentOpeningHours?.openNow ?? null,
       hours: place.currentOpeningHours?.weekdayDescriptions ?? [],
       mapsUrl: place.googleMapsUri ?? null,
+      photos: (place.photos ?? []).filter(photo => /^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/.test(photo.name ?? "")).slice(0, 10).map(photo => ({
+        name: photo.name!,
+        mapsUrl: photo.googleMapsUri ?? place.googleMapsUri ?? null,
+        credits: photo.authorAttributions ?? [],
+      })),
       ...(reviews ? { reviews: (place.reviews ?? []).slice(0, 5).map(review => ({
         rating: review.rating ?? null,
         text: review.text?.text ?? "",
