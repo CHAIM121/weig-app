@@ -149,3 +149,25 @@ body{background:var(--paper);color:var(--ink)}
   .discover-app:has(.feed-mode) .discover-feed-caption>span{color:#9ff5ef}
   .bottom-nav a[aria-current=page]{color:var(--brand)!important}
 }
+
+/* Place details inside the existing discovery sheet. */
+.discover-live-details{border-top:1px solid #e5ece9;margin-top:18px;padding-top:15px;color:#40515a;font-size:14px}
+.discover-live-details p{margin:7px 0 12px;line-height:1.5}
+.discover-live-facts{display:grid;gap:10px;padding-bottom:12px}
+.discover-live-facts span{display:flex;align-items:center;gap:8px}
+.discover-live-facts span:first-child svg{color:#e6a22e}
+.discover-live-hours{border-top:1px solid #e5ece9;padding:11px 0}
+.discover-live-hours button,.discover-live-reviews>button{border:0;background:transparent;color:#116b79;font:inherit;font-weight:700;padding:5px 0;display:inline-flex;align-items:center;gap:7px}
+.discover-live-hours ul{list-style:none;padding:3px 0 0;margin:0;display:grid;gap:6px;font-size:13px}
+.discover-live-links{display:flex;gap:9px;flex-wrap:wrap;margin:3px 0 15px}
+.discover-live-links a{display:inline-flex;align-items:center;gap:7px;border:1px solid #dae5e7;border-radius:11px;padding:9px 12px;text-decoration:none;color:#116b79;font-weight:700}
+.discover-live-reviews{border-top:1px solid #e5ece9;padding-top:9px}
+.discover-live-reviews>button:disabled{opacity:.65}
+.discover-live-review{padding:13px 0;border-top:1px solid #edf1f1}
+.discover-live-review>div{display:flex;align-items:center;gap:7px;font-weight:700}
+.discover-live-review img{height:25px;width:25px;border-radius:50%}
+.discover-live-review>div span{margin-inline-start:auto;color:#bd781c}
+.discover-live-review a{color:#116b79;font-size:12px}
+.discover-live-review p{white-space:pre-wrap;overflow-wrap:anywhere}
+.discover-live-note{font-size:12px;color:#728087}
+.discover-live-note a{color:#116b79}
