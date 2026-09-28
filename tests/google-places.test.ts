@@ -57,6 +57,8 @@ describe("Israel places search", () => {
     for (const [, options] of fetcher.mock.calls) {
       const request = JSON.parse(String(options?.body));
       expect(request.textQuery).not.toContain("ירושלים");
+      expect(request.textQuery).not.toContain("ישראל");
+      expect(request.rankPreference).toBe("DISTANCE");
       expect(request.locationBias.circle.center).toEqual({ latitude: 31.75, longitude: 34.99 });
     }
   });

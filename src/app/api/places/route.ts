@@ -58,13 +58,14 @@ function present(place: GooglePlace) {
   };
 }
 
-async function search(key: string, textQuery: string, locale: string, center: Center | null, pageSize: number) {
+async function search(key: string, textQuery: string, locale: string, center: Center | null, pageSize: number, distanceRank = false) {
   const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": fieldMask },
     body: JSON.stringify({
       textQuery, languageCode: locale, regionCode: "IL", pageSize,
       ...(center ? { locationBias: { circle: { center, radius: 15000 } } } : {}),
+      ...(distanceRank ? { rankPreference: "DISTANCE" } : {}),
     }),
     cache: "no-store",
     signal: AbortSignal.timeout(8500),
@@ -75,7 +76,7 @@ async function search(key: string, textQuery: string, locale: string, center: Ce
 
 async function discovery(key: string, locale: string, city: string, center: Center | null) {
   const results = await Promise.allSettled(themes.map(theme =>
-    search(key, `${locale === "he" ? theme.he : theme.en} ${center ? "ישראל" : `ב${city} ישראל`}`, locale, center, 8)
+    search(key, `${locale === "he" ? theme.he : theme.en} ${center ? "" : `ב${city} ישראל`}`.trim(), locale, center, 8, !!center)
   ));
   if (results.every(result => result.status === "rejected")) throw new Error("PLACES_UPSTREAM_ERROR");
   const groups = results.map(result => result.status === "fulfilled"
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
   try {
     if (feed && !query) return NextResponse.json({ places: await discovery(apiKey, locale, city, center), source: "google_places" }, { headers: noStore });
     const term = query || (locale === "he" ? category?.searchHe : category?.searchEn) || "";
-    const matches = await search(apiKey, `${term} ${query ? "" : center ? "" : `ב${city}`} ישראל`.trim(), locale, center, 12);
+    const matches = await search(apiKey, `${term} ${query ? "" : center ? "" : `ב${city} ישראל`}`.trim(), locale, center, 12);
     const first = matches[0];
     const normalized = (value: string) => value.toLocaleLowerCase().replace(/[\s־–-]+/g, " ").trim();
     if (feed && query && first?.primaryType === "locality" && first.location?.latitude != null && first.location.longitude != null
