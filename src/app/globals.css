@@ -199,6 +199,23 @@ body{background:var(--paper);color:var(--ink)}
 .discover-detail-body>.discover-detail-area+ p{margin:14px 0}
 .discover-feed-credit:empty{display:none}
 
+/* Keep the first Places paint stable while location and results are loading. */
+.discover-loading-screen{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100dvh - 92px);width:100%;background:#171b27;color:white;display:flex;align-items:flex-end;justify-content:center}
+.discover-loading-visual{position:absolute;inset:0;background:radial-gradient(ellipse at 62% 29%,#718fb988,transparent 48%),linear-gradient(150deg,#16253a 7%,#526778 47%,#171b27 85%);animation:weig-loading-breathe 3s ease-in-out infinite alternate}
+.discover-loading-glow{position:absolute;width:70%;height:25%;bottom:22%;left:-12%;border-radius:50%;background:#e6c29d48;filter:blur(52px)}
+.discover-loading-horizon{position:absolute;inset-inline:-12%;bottom:-13%;height:47%;border-radius:48% 52% 0 0;background:linear-gradient(135deg,#1d3940,#101825)}
+.discover-loading-copy{position:relative;z-index:1;margin-bottom:18vh;display:flex;align-items:center;gap:10px;background:#111a25af;border:1px solid #ffffff38;border-radius:99px;padding:12px 18px;font-weight:700;backdrop-filter:blur(12px)}
+.discover-loading-pulse{width:9px;height:9px;border-radius:50%;background:#71d7e0;box-shadow:0 0 0 5px #71d7e026;animation:weig-loading-pulse 1.5s ease-in-out infinite}
+@keyframes weig-loading-breathe{to{filter:brightness(1.12);transform:scale(1.025)}}
+@keyframes weig-loading-pulse{50%{opacity:.35;transform:scale(.75)}}
+@media(max-width:799px){.discover-loading-screen{min-height:100dvh;margin-top:-81px;margin-bottom:-118px}}
+.app-shell:has(.discover-loading-screen) .topbar{background:#171b27a8;color:white;border:0;backdrop-filter:blur(16px)}
+.app-shell:has(.discover-loading-screen) .topbar .brand,.app-shell:has(.discover-loading-screen) .topbar .icon-button{color:white}
+.app-shell:has(.discover-loading-screen) .bottom-nav{background:#171b27ed;border-color:#ffffff20}
+.app-shell:has(.discover-loading-screen) .bottom-nav a{color:#fff9}
+.app-shell:has(.discover-loading-screen) .bottom-nav a[aria-current=page]{color:white}
+@media(prefers-reduced-motion:reduce){.discover-loading-visual,.discover-loading-pulse{animation:none}}
+
 /* Shared motion language across the four app sections. */
 @keyframes weig-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes weig-modal{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}

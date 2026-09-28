@@ -44,11 +44,13 @@ function validPlace(place: GooglePlace) {
   return (typeof lat !== "number" || typeof lng !== "number" || israelBounds(lat, lng));
 }
 
-function present(place: GooglePlace) {
+function present(place: GooglePlace, locale: string) {
+  const address = place.formattedAddress ?? "";
+  const areaOnly = address && !/[\d,،]/.test(address) && !/^(ישראל|Israel)$/.test(address);
   return {
     id: place.id,
     name: place.displayName?.text,
-    address: place.formattedAddress ?? "",
+    address: areaOnly ? (locale === "he" ? `אזור ${address}` : `${address} area`) : address,
     mapsUrl: place.googleMapsUri ?? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${encodeURIComponent(place.id!)}`,
     location: place.location ?? null,
     photoName: place.photos?.[0]?.name ?? null,
@@ -96,7 +98,7 @@ async function discovery(key: string, locale: string, city: string, center: Cent
       if (picked.length === 12) break;
     }
   }
-  return picked.map(present);
+  return picked.map(place => present(place, locale));
 }
 
 export async function GET(request: NextRequest) {
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
       && normalized(first.displayName?.text ?? "").startsWith(normalized(query))) {
       return NextResponse.json({ places: await discovery(apiKey, locale, city, first.location as Center), source: "google_places" }, { headers: noStore });
     }
-    return NextResponse.json({ places: matches.filter(validPlace).map(present), source: "google_places" }, { headers: noStore });
+    return NextResponse.json({ places: matches.filter(validPlace).map(place => present(place, locale)), source: "google_places" }, { headers: noStore });
   } catch {
     return NextResponse.json({ error: "PLACES_UPSTREAM_ERROR" }, { status: 502, headers: noStore });
   }

@@ -20,6 +20,7 @@ export function PlacesExperience({t}:{t:Dictionary}) {
  const storageKey=`weig-places-state-${he?"he":"en"}`;
  const restoredScroll=useRef(false);
  const [hydrated,setHydrated]=useState(false),[pendingPlaceId,setPendingPlaceId]=useState<string|null>(null);
+ const [hasLoaded,setHasLoaded]=useState(false);
  const [location,setLocation]=useState<{lat:number;lng:number}|null>(null),[locationReady,setLocationReady]=useState(false),[manualCity,setManualCity]=useState(false);
  const [gallery,setGallery]=useState<{id:string;photos:PlacePhoto[]} | null>(null);
  const [query,setQuery]=useState(""),[category,setCategory]=useState<"all"|CategoryId>("all"),[city,setCity]=useState(he?"ירושלים":"Jerusalem"),[livePlaces,setLivePlaces]=useState<Place[]>([]),[status,setStatus]=useState<"loading"|"ready"|"missing"|"error">("loading"),[selected,setSelected]=useState<Place|null>(null),[view,setView]=useState<"feed"|"list"|"map">("feed"),[saved,setSaved]=useState<string[]>([]),[locationNote,setLocationNote]=useState(false),[showSaved,setShowSaved]=useState(false);
@@ -35,6 +36,7 @@ export function PlacesExperience({t}:{t:Dictionary}) {
   return()=>{clearTimeout(timer);controller.abort()};
  },[category,city,query,he,hydrated,locationReady,location,manualCity]);
  const preview=status==="missing"&&category==="all"&&!query.trim();
+ useEffect(()=>{if(status!=="loading")setHasLoaded(true)},[status]);
  const visible=useMemo(()=>(preview?places:livePlaces).filter(p=>(!showSaved||saved.includes(p.id))&&(status!=="missing"||!query.trim()||`${p.he} ${p.en} ${p.kindHe} ${p.areaHe}`.toLowerCase().includes(query.trim().toLowerCase()))),[preview,livePlaces,query,saved,showSaved,status]);
  useEffect(()=>{if(!pendingPlaceId||!hydrated||status==="loading")return;const place=visible.find(item=>item.id===pendingPlaceId);if(place){setSelected(place);setPendingPlaceId(null)}},[pendingPlaceId,hydrated,status,visible]);
  useEffect(()=>{if(!hydrated||restoredScroll.current||status==="loading")return;const timer=window.setTimeout(()=>{try{const position=Number(sessionStorage.getItem(`${storageKey}-scroll`)||0);if(Number.isFinite(position)&&position>0)window.scrollTo(0,position)}catch{}restoredScroll.current=true},100);return()=>window.clearTimeout(timer)},[hydrated,status,storageKey]);
@@ -43,6 +45,7 @@ export function PlacesExperience({t}:{t:Dictionary}) {
  const receivePhotos=useCallback((id:string,photos:PlacePhoto[])=>setGallery({id,photos}),[]);
  useEffect(()=>{try{const value=JSON.parse(localStorage.getItem("weig-saved-places")||"[]");if(Array.isArray(value))setSaved(value.filter((x):x is string=>typeof x==="string"))}catch{}},[]);
  const toggle=(id:string)=>setSaved(v=>{const next=v.includes(id)?v.filter(x=>x!==id):[...v,id];try{localStorage.setItem("weig-saved-places",JSON.stringify(next))}catch{}return next});const title=(p:Place)=>he?p.he:p.en;
+ if(!hasLoaded)return <div className="discover-app discover-loading-screen" role="status" aria-live="polite"><div className="discover-loading-visual"><span className="discover-loading-glow"/><span className="discover-loading-horizon"/></div><div className="discover-loading-copy"><span className="discover-loading-pulse"/>{label("מוצאים מקומות בשבילך...","Finding places for you...")}</div></div>;
  return <div className="discover-app">
   <div className="discover-topline"><div><span className="discover-eyebrow">{label("מגלים עם WEIG","WEIG DISCOVER")}</span><h1>{label("לגלות", "Discover")}</h1></div><button className="discover-city" onClick={()=>setLocationNote(v=>!v)}><MapPin size={16}/>{preview?label("בודפשט", "Budapest"):city}<ChevronDown size={15}/></button></div>
   <div className="discover-search"><Search size={21}/><input value={query} onChange={e=>setQuery(e.target.value)} aria-label={t.places.search} placeholder={label("איזה מקום מתחשק לך לגלות?","What would you like to discover?")}/>{query&&<button aria-label={label("נקה חיפוש","Clear search")} onClick={()=>setQuery("")}><X size={18}/></button>}<button className="discover-search-filter" aria-label={label("הצג סינון","Show filters")} onClick={()=>setCategory(category==="all"?"restaurants":"all")}><SlidersHorizontal size={19}/></button></div>

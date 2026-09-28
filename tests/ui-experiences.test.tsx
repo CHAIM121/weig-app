@@ -8,9 +8,9 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), useSea
 const t = getDictionary("en");
 
 describe("Milestone 2 experiences", () => {
-  it.each(["places", "expenses", "calls", "ai"] as const)("renders the %s product screen", (module) => {
+  it.each(["places", "expenses", "calls", "ai"] as const)("renders the %s product screen", async (module) => {
     render(<ModuleExperience module={module} t={t} />);
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
   it("continues email authentication to the OTP state", () => {
@@ -29,13 +29,13 @@ describe("Milestone 2 experiences", () => {
     expect(screen.getByText("Local preview")).toBeInTheDocument();
   });
 
-  it("restores the Places category and view after a reload", () => {
+  it("restores the Places category and view after a reload", async () => {
     sessionStorage.setItem("weig-places-state-en", JSON.stringify({
       category: "stays", city: "Tel Aviv", query: "", view: "list",
     }));
     try {
       render(<ModuleExperience module="places" t={t} />);
-      expect(screen.getByRole("button", { name: "Hotels & stays" })).toHaveAttribute("aria-pressed", "true");
+      expect(await screen.findByRole("button", { name: "Hotels & stays" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { name: "List" })).toHaveAttribute("aria-pressed", "true");
     } finally {
       sessionStorage.removeItem("weig-places-state-en");

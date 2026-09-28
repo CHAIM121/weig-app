@@ -82,4 +82,14 @@ describe("Israel places search", () => {
     expect(body.places.some((place: { id: string }) => place.id === "city")).toBe(false);
     expect(fetcher).toHaveBeenCalledTimes(5);
   });
+
+  it("labels a bare city address as an area rather than an exact city location", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ places: [{
+      id: "cave", displayName: { text: "מערת הנטיפים" }, formattedAddress: "בית שמש",
+      location: { latitude: 31.74, longitude: 35.02 },
+    }] }), { status: 200 }));
+    const result = await GET(new NextRequest("http://localhost/api/places?category=nature&city=בית%20שמש"));
+    expect((await result.json()).places[0].address).toBe("אזור בית שמש");
+  });
 });
