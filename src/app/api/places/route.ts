@@ -76,23 +76,31 @@ async function search(key: string, textQuery: string, locale: string, center: Ce
   return ((await response.json()) as { places?: GooglePlace[] }).places ?? [];
 }
 
-async function discovery(key: string, locale: string, city: string, center: Center | null) {
+async function discovery(key: string, locale: string, city: string, center: Center | null, recent: string[]) {
   const results = await Promise.allSettled(themes.map(theme =>
-    search(key, `${locale === "he" ? theme.he : theme.en} ${center ? "" : `ב${city} ישראל`}`.trim(), locale, center, 8, !!center)
+    search(key, `${locale === "he" ? theme.he : theme.en} ${center ? "" : `ב${city} ישראל`}`.trim(), locale, center, 20, !!center)
   ));
   if (results.every(result => result.status === "rejected")) throw new Error("PLACES_UPSTREAM_ERROR");
+  const candidates = results.flatMap(result => result.status === "fulfilled" ? result.value : []);
+  const nearbyCount = new Set(candidates.filter(place => validPlace(place) && center && distanceKm(center, place.location) <= 15).map(place => place.id)).size;
+  const radius = nearbyCount >= 12 ? 15 : 30;
   const groups = results.map(result => result.status === "fulfilled"
-    ? result.value.filter(validPlace).map((place, rank) => ({ place, rank }))
+    ? result.value.filter(place => validPlace(place) && (!center || distanceKm(center, place.location) <= radius)).map((place, rank) => ({ place, rank }))
       .sort((a, b) => center
-        ? (a.rank + Math.min(distanceKm(center, a.place.location), 30) / 3)
-          - (b.rank + Math.min(distanceKm(center, b.place.location), 30) / 3)
+        ? (a.rank + distanceKm(center, a.place.location) / 3)
+          - (b.rank + distanceKm(center, b.place.location) / 3)
         : a.rank - b.rank)
       .map(item => item.place)
     : []);
+  const recentOrder = new Map(recent.map((id, index) => [id, index]));
+  // Keep each theme represented, but prefer places that were not shown on recent visits.
+  const ordered = groups.map(group => group.sort((a, b) =>
+    (recentOrder.has(a.id!) ? 1 : 0) - (recentOrder.has(b.id!) ? 1 : 0)
+      || (recentOrder.get(a.id!) ?? 0) - (recentOrder.get(b.id!) ?? 0)));
   const picked: GooglePlace[] = [];
   const seen = new Set<string>();
-  for (let pass = 0; pass < 8 && picked.length < 12; pass++) {
-    for (const group of groups) {
+  for (let pass = 0; pass < 20 && picked.length < 12; pass++) {
+    for (const group of ordered) {
       const item = group[pass];
       if (item?.id && !seen.has(item.id)) { picked.push(item); seen.add(item.id); }
       if (picked.length === 12) break;
@@ -105,10 +113,11 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const category = findCategory(params.get("category") ?? "");
   const query = (params.get("query") ?? "").trim();
-  const city = (params.get("city") ?? "ירושלים").trim();
+  const city = (params.get("city") ?? "").trim();
   const locale = params.get("locale") === "en" ? "en" : "he";
   const feed = params.get("feed") === "1";
-  if ((!feed && !category && query.length < 2) || query.length > 100 || city.length > 60 || !city) {
+  const recent = (params.get("recent") ?? "").split(",").filter(id => /^[\w-]{1,150}$/.test(id)).slice(0, 48);
+  if ((!feed && !category && query.length < 2) || query.length > 100 || city.length > 60 || (!city && !(params.has("lat") && params.has("lng")))) {
     return NextResponse.json({ error: "INVALID_SEARCH" }, { status: 400, headers: noStore });
   }
 
@@ -119,11 +128,23 @@ export async function GET(request: NextRequest) {
   const rawLng = Number(params.get("lng"));
   const useLocation = params.has("lat") && params.has("lng") && Number.isFinite(rawLat) && Number.isFinite(rawLng) && israelBounds(rawLat, rawLng);
   const center = useLocation ? { latitude: rawLat, longitude: rawLng } : null;
+  if (!center && !city) return NextResponse.json({ error: "LOCATION_REQUIRED" }, { status: 400, headers: noStore });
 
   try {
-    if (feed && !query) return NextResponse.json({ places: await discovery(apiKey, locale, city, center), source: "google_places" }, { headers: noStore });
+    let areaCenter = center;
+    if (!areaCenter && city && !query) {
+      const cityResults = await search(apiKey, `${city} ישראל`, locale, null, 5);
+      const normalizedCity = city.toLocaleLowerCase().replace(/[\s־–-]+/g, " ").trim();
+      const match = cityResults.find(place => place.primaryType === "locality"
+        && place.displayName?.text?.toLocaleLowerCase().replace(/[\s־–-]+/g, " ").startsWith(normalizedCity)
+        && place.location?.latitude != null && place.location.longitude != null
+        && israelBounds(place.location.latitude, place.location.longitude));
+      if (match) areaCenter = match.location as Center;
+      else if (feed) return NextResponse.json({ places: [], source: "google_places" }, { headers: noStore });
+    }
+    if (feed && !query) return NextResponse.json({ places: await discovery(apiKey, locale, city, areaCenter, recent), source: "google_places" }, { headers: noStore });
     const term = query || (locale === "he" ? category?.searchHe : category?.searchEn) || "";
-    const matches = await search(apiKey, `${term} ${query ? "" : center ? "" : `ב${city} ישראל`}`.trim(), locale, center, 12);
+    const matches = await search(apiKey, `${term} ${query ? "" : areaCenter ? "" : `ב${city} ישראל`}`.trim(), locale, areaCenter, 12);
     const first = matches[0];
     const normalized = (value: string) => value.toLocaleLowerCase().replace(/[\s־–-]+/g, " ").trim();
     const cityResult = first && (first.primaryType === "locality"
@@ -131,9 +152,9 @@ export async function GET(request: NextRequest) {
     if (feed && query && cityResult && first.location?.latitude != null && first.location.longitude != null
       && israelBounds(first.location.latitude, first.location.longitude)
       && normalized(first.displayName?.text ?? "").startsWith(normalized(query))) {
-      return NextResponse.json({ places: await discovery(apiKey, locale, city, first.location as Center), source: "google_places" }, { headers: noStore });
+      return NextResponse.json({ places: await discovery(apiKey, locale, city, first.location as Center, recent), source: "google_places" }, { headers: noStore });
     }
-    return NextResponse.json({ places: matches.filter(validPlace).map(place => present(place, locale)), source: "google_places" }, { headers: noStore });
+    return NextResponse.json({ places: matches.filter(place => validPlace(place) && (!areaCenter || !!query || distanceKm(areaCenter, place.location) <= 30)).map(place => present(place, locale)), source: "google_places" }, { headers: noStore });
   } catch {
     return NextResponse.json({ error: "PLACES_UPSTREAM_ERROR" }, { status: 502, headers: noStore });
   }

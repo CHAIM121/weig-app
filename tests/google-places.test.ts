@@ -24,9 +24,19 @@ describe("Israel places search", () => {
     expect(await result.json()).toEqual({ error: "PLACES_NOT_CONFIGURED" });
   });
 
+  it("requires an area instead of silently defaulting to Jerusalem", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    const fetcher = vi.spyOn(globalThis, "fetch");
+    const result = await GET(new NextRequest("http://localhost/api/places?feed=1"));
+    expect(result.status).toBe(400);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("does not expose credentials or label Google data as verified", async () => {
     process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
-    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ places: [
+    const request = vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => new Response(JSON.stringify({ places: JSON.parse(String(options?.body)).textQuery === "ירושלים ישראל" ? [
+      { id: "city", displayName: { text: "ירושלים" }, primaryType: "locality", location: { latitude: 31.77, longitude: 35.21 } },
+    ] : [
       { id: "israel-id", displayName: { text: "מקום בירושלים" }, formattedAddress: "ירושלים", addressComponents: [{ shortText: "IL", types: ["country"] }], location: { latitude: 31.77, longitude: 35.21 } },
       { id: "outside-id", displayName: { text: "Elsewhere" }, addressComponents: [{ shortText: "JO", types: ["country"] }] },
     ] }), { status: 200 }));
@@ -63,6 +73,27 @@ describe("Israel places search", () => {
     }
   });
 
+  it("rotates previously shown places and excludes distant results while nearby choices exist", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
+      const query = JSON.parse(String(options?.body)).textQuery as string;
+      const group = query.includes("טבע") ? "nature" : query.includes("כנסת") ? "jewish" : query.includes("למשפחות") ? "family" : "food";
+      const places = Array.from({ length: 5 }, (_, index) => ({
+        id: `${group}-${index}`, displayName: { text: `${group}-${index}` },
+        location: { latitude: 31.75, longitude: 34.99 },
+      }));
+      places.push({ id: `${group}-far`, displayName: { text: "ירושלים" }, location: { latitude: 31.78, longitude: 35.21 } });
+      return new Response(JSON.stringify({ places }), { status: 200 });
+    });
+    const first = await (await GET(new NextRequest("http://localhost/api/places?feed=1&lat=31.75&lng=34.99"))).json();
+    const recent = first.places.map((place: { id: string }) => place.id).join(",");
+    const next = await (await GET(new NextRequest(`http://localhost/api/places?feed=1&lat=31.75&lng=34.99&recent=${recent}`))).json();
+    expect(first.places).toHaveLength(12);
+    expect(next.places).toHaveLength(12);
+    expect(next.places.map((place: { id: string }) => place.id)).not.toEqual(first.places.map((place: { id: string }) => place.id));
+    expect(next.places.every((place: { id: string }) => !place.id.endsWith("-far"))).toBe(true);
+  });
+
   it("treats an exact city search as a destination discovery feed", async () => {
     process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
     const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
@@ -85,10 +116,9 @@ describe("Israel places search", () => {
 
   it("labels a bare city address as an area rather than an exact city location", async () => {
     process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ places: [{
-      id: "cave", displayName: { text: "מערת הנטיפים" }, formattedAddress: "בית שמש",
-      location: { latitude: 31.74, longitude: 35.02 },
-    }] }), { status: 200 }));
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => new Response(JSON.stringify({ places: JSON.parse(String(options?.body)).textQuery === "בית שמש ישראל" ? [{
+      id: "city", displayName: { text: "בית שמש" }, primaryType: "locality", location: { latitude: 31.74, longitude: 35.02 },
+    }] : [{ id: "cave", displayName: { text: "מערת הנטיפים" }, formattedAddress: "בית שמש", location: { latitude: 31.74, longitude: 35.02 } }] }), { status: 200 }));
     const result = await GET(new NextRequest("http://localhost/api/places?category=nature&city=בית%20שמש"));
     expect((await result.json()).places[0].address).toBe("אזור בית שמש");
   });
