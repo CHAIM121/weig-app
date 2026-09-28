@@ -124,7 +124,9 @@ export async function GET(request: NextRequest) {
     const matches = await search(apiKey, `${term} ${query ? "" : center ? "" : `ב${city} ישראל`}`.trim(), locale, center, 12);
     const first = matches[0];
     const normalized = (value: string) => value.toLocaleLowerCase().replace(/[\s־–-]+/g, " ").trim();
-    if (feed && query && first?.primaryType === "locality" && first.location?.latitude != null && first.location.longitude != null
+    const cityResult = first && (first.primaryType === "locality"
+      || normalized(first.formattedAddress ?? "") === normalized(first.displayName?.text ?? ""));
+    if (feed && query && cityResult && first.location?.latitude != null && first.location.longitude != null
       && israelBounds(first.location.latitude, first.location.longitude)
       && normalized(first.displayName?.text ?? "").startsWith(normalized(query))) {
       return NextResponse.json({ places: await discovery(apiKey, locale, city, first.location as Center), source: "google_places" }, { headers: noStore });

@@ -68,7 +68,7 @@ describe("Israel places search", () => {
     const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
       const request = JSON.parse(String(options?.body));
       if (request.textQuery.startsWith("תל אביב")) return new Response(JSON.stringify({ places: [{
-        id: "city", displayName: { text: "תל אביב-יפו" }, primaryType: "locality",
+        id: "city", displayName: { text: "תל אביב-יפו" }, formattedAddress: "תל אביב-יפו",
         location: { latitude: 32.08, longitude: 34.78 },
       }] }), { status: 200 });
       return new Response(JSON.stringify({ places: [{
