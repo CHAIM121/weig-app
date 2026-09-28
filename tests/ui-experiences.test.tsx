@@ -28,4 +28,17 @@ describe("Milestone 2 experiences", () => {
     fireEvent.click(screen.getByRole("dialog").querySelector("button[type=submit]")!);
     expect(screen.getByText("Local preview")).toBeInTheDocument();
   });
+
+  it("restores the Places category and view after a reload", () => {
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({
+      category: "stays", city: "Tel Aviv", query: "", view: "list",
+    }));
+    try {
+      render(<ModuleExperience module="places" t={t} />);
+      expect(screen.getByRole("button", { name: "Hotels & stays" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "List" })).toHaveAttribute("aria-pressed", "true");
+    } finally {
+      sessionStorage.removeItem("weig-places-state-en");
+    }
+  });
 });

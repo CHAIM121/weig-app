@@ -9,7 +9,10 @@ export function middleware(request: NextRequest) {
 
   if (!isLocale(candidate)) {
     const url = request.nextUrl.clone();
-    url.pathname = `/${defaultLocale}${request.nextUrl.pathname === "/" ? "/auth" : request.nextUrl.pathname}`;
+    const lastPath = request.cookies.get("weig-last-path")?.value;
+    url.pathname = request.nextUrl.pathname === "/"
+      ? (/^\/(he|en)\/(places|expenses|calls|ai)$/.test(lastPath ?? "") ? lastPath! : `/${defaultLocale}/places`)
+      : `/${defaultLocale}${request.nextUrl.pathname}`;
     return NextResponse.redirect(url);
   }
 

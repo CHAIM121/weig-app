@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, X, Clock3, Phone, Star, Globe2, MessageCircle } from "lucide-react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useSearchParams } from "next/navigation";
@@ -17,16 +17,24 @@ const places:Place[]=[
 ];
 export function PlacesExperience({t}:{t:Dictionary}) {
  const searchParams=useSearchParams();const he=t.places.title==="לאן תרצו להגיע?";const label=(h:string,e:string)=>he?h:e;const arrow=he?<ArrowLeft size={18}/>:<ArrowRight size={18}/>;
+ const storageKey=`weig-places-state-${he?"he":"en"}`;
+ const restoredScroll=useRef(false);
+ const [hydrated,setHydrated]=useState(false),[pendingPlaceId,setPendingPlaceId]=useState<string|null>(null);
  const [gallery,setGallery]=useState<{id:string;photos:PlacePhoto[]} | null>(null);
  const [query,setQuery]=useState(""),[category,setCategory]=useState<"all"|CategoryId>("all"),[city,setCity]=useState(he?"ירושלים":"Jerusalem"),[livePlaces,setLivePlaces]=useState<Place[]>([]),[status,setStatus]=useState<"loading"|"ready"|"missing"|"error">("loading"),[selected,setSelected]=useState<Place|null>(null),[view,setView]=useState<"feed"|"list"|"map">("feed"),[saved,setSaved]=useState<string[]>([]),[locationNote,setLocationNote]=useState(false),[showSaved,setShowSaved]=useState(false);
+ useEffect(()=>{try{const data=JSON.parse(sessionStorage.getItem(storageKey)||"{}");if(typeof data.query==="string")setQuery(data.query.slice(0,150));if(typeof data.city==="string")setCity(data.city.slice(0,60));if(data.category==="all"||placeCategories.some(item=>item.id===data.category))setCategory(data.category);if(["feed","list","map"].includes(data.view))setView(data.view);if(typeof data.placeId==="string")setPendingPlaceId(data.placeId);if(typeof data.locationNote==="boolean")setLocationNote(data.locationNote)}catch{}setHydrated(true)},[storageKey]);
+ useEffect(()=>{if(!hydrated)return;try{sessionStorage.setItem(storageKey,JSON.stringify({query,category,city,view,placeId:selected?.id??pendingPlaceId,locationNote}))}catch{}},[hydrated,storageKey,query,category,city,view,selected,pendingPlaceId,locationNote]);
  useEffect(()=>{setShowSaved(searchParams.get("saved")==="1")},[searchParams]);
- useEffect(()=>{const controller=new AbortController();const search=new URLSearchParams({category:category==="all"?"nature":category,city,locale:he?"he":"en"});
+ useEffect(()=>{if(!hydrated)return;const controller=new AbortController();const search=new URLSearchParams({category:category==="all"?"nature":category,city,locale:he?"he":"en"});
   if(query.trim().length>=2)search.set("query",query.trim());
   setStatus("loading");const timer=setTimeout(()=>{fetch(`/api/places?${search}`,{signal:controller.signal,cache:"no-store"}).then(async response=>{const data=await response.json();if(response.status===503&&data.error==="PLACES_NOT_CONFIGURED"){setStatus("missing");setLivePlaces([]);return}if(!response.ok||!Array.isArray(data.places))throw new Error("Places unavailable");setLivePlaces((data.places as GooglePlace[]).map(place=>({id:place.id,image:place.photoName?`/api/places/photo?name=${encodeURIComponent(place.photoName)}`:"/images/place-placeholder.svg",he:place.name,en:place.name,kindHe:"",kindEn:"",areaHe:place.address,areaEn:place.address,descriptionHe:"",descriptionEn:"",maps:place.name,credit:place.photoCredits?.map(item=>item.displayName).filter(Boolean).join(" · ")||"",type:"views" as const,mapsUrl:place.mapsUrl,photoCredits:place.photoCredits,attributions:place.attributions})));setStatus("ready")}).catch(error=>{if(error.name!=="AbortError"){setStatus("error");setLivePlaces([])}})},query?350:0);
   return()=>{clearTimeout(timer);controller.abort()};
- },[category,city,query,he]);
+ },[category,city,query,he,hydrated]);
  const preview=status==="missing"&&category==="all"&&!query.trim();
  const visible=useMemo(()=>(preview?places:livePlaces).filter(p=>(!showSaved||saved.includes(p.id))&&(status!=="missing"||!query.trim()||`${p.he} ${p.en} ${p.kindHe} ${p.areaHe}`.toLowerCase().includes(query.trim().toLowerCase()))),[preview,livePlaces,query,saved,showSaved,status]);
+ useEffect(()=>{if(!pendingPlaceId||!hydrated||status==="loading")return;const place=visible.find(item=>item.id===pendingPlaceId);if(place){setSelected(place);setPendingPlaceId(null)}},[pendingPlaceId,hydrated,status,visible]);
+ useEffect(()=>{if(!hydrated||restoredScroll.current||status==="loading")return;const timer=window.setTimeout(()=>{try{const position=Number(sessionStorage.getItem(`${storageKey}-scroll`)||0);if(Number.isFinite(position)&&position>0)window.scrollTo(0,position)}catch{}restoredScroll.current=true},100);return()=>window.clearTimeout(timer)},[hydrated,status,storageKey]);
+ useEffect(()=>{if(!hydrated)return;const saveScroll=()=>{try{if(restoredScroll.current)sessionStorage.setItem(`${storageKey}-scroll`,String(window.scrollY))}catch{}};window.addEventListener("scroll",saveScroll,{passive:true});window.addEventListener("pagehide",saveScroll);return()=>{saveScroll();window.removeEventListener("scroll",saveScroll);window.removeEventListener("pagehide",saveScroll)}},[hydrated,storageKey]);
  const activeCategory=placeCategories.find(item=>item.id===category);
  const receivePhotos=useCallback((id:string,photos:PlacePhoto[])=>setGallery({id,photos}),[]);
  useEffect(()=>{try{const value=JSON.parse(localStorage.getItem("weig-saved-places")||"[]");if(Array.isArray(value))setSaved(value.filter((x):x is string=>typeof x==="string"))}catch{}},[]);
