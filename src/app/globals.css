@@ -317,3 +317,4 @@ body{background:var(--paper);color:var(--ink)}
 .discover-feed-actions button[aria-pressed=true],.discover-app:has(.feed-mode) .discover-feed-actions button[aria-pressed=true]{color:#ff759b!important;border:0}
 .discover-feed-actions button:last-child[aria-pressed=true],.discover-app:has(.feed-mode) .discover-feed-actions button:last-child[aria-pressed=true]{color:#fff!important}
 @media(max-width:799px){.discover-app:has(.feed-mode) .discover-feed-actions{inset-inline-end:17px;bottom:82px;gap:13px}}
+.discover-load-more{min-height:32px;text-align:center;color:#789085;font-size:13px;padding:6px 16px}

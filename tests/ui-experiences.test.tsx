@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthExperience } from "@/components/auth-experience";
 import { ModuleExperience } from "@/components/module-experience";
@@ -100,6 +100,34 @@ describe("Milestone 2 experiences", () => {
     } finally {
       fetcher.mockRestore();
       window.history.replaceState({}, "", "/");
+      sessionStorage.removeItem("weig-places-state-en");
+    }
+  });
+
+  it("appends a new feed page when the user approaches the end", async () => {
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({ city: "Tel Aviv", manualCity: true, view: "feed" }));
+    let onIntersect: IntersectionObserverCallback = () => {};
+    let observed = false;
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(callback: IntersectionObserverCallback) { onIntersect = callback; }
+      observe() { observed = true; } disconnect() {}
+    });
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const page = new URL(String(input), "http://localhost").searchParams.get("page");
+      const place = { id: page ? "place-two" : "place-one", name: page ? "Second Place" : "First Place", address: "Tel Aviv", mapsUrl: "https://maps.google.com/", photoName: null };
+      return new Response(JSON.stringify({ places: [place], hasMore: !page }), { status: 200 });
+    });
+    try {
+      render(<ModuleExperience module="places" t={t} />);
+      expect(await screen.findByRole("heading", { name: "First Place" })).toBeInTheDocument();
+      await waitFor(() => expect(observed).toBe(true));
+      await act(async () => onIntersect([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+      expect(await screen.findByRole("heading", { name: "Second Place" })).toBeInTheDocument();
+      expect(screen.getAllByRole("heading", { name: "First Place" })).toHaveLength(1);
+      expect(fetcher.mock.calls.some(([input]) => String(input).includes("page=1") && String(input).includes("seen=place-one"))).toBe(true);
+    } finally {
+      fetcher.mockRestore();
+      vi.unstubAllGlobals();
       sessionStorage.removeItem("weig-places-state-en");
     }
   });

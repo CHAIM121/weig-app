@@ -122,4 +122,45 @@ describe("Israel places search", () => {
     const result = await GET(new NextRequest("http://localhost/api/places?category=nature&city=בית%20שמש"));
     expect((await result.json()).places[0].address).toBe("אזור בית שמש");
   });
+
+  it("loads unseen places and expands the discovery radius gradually", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    const request = vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
+      const body = JSON.parse(String(options?.body));
+      const group = body.textQuery.includes("טבע") ? "nature" : body.textQuery.includes("כנסת") ? "synagogue" : body.textQuery.includes("למשפחות") ? "family" : "food";
+      return new Response(JSON.stringify({ places: Array.from({ length: 8 }, (_, index) => ({
+        id: `${group}-${index}`, displayName: { text: `${group}-${index}` },
+        location: { latitude: 31.75, longitude: 34.99 },
+      })) }), { status: 200 });
+    });
+    const base = "http://localhost/api/places?feed=1&lat=31.75&lng=34.99";
+    const first = await (await GET(new NextRequest(base))).json();
+    const second = await (await GET(new NextRequest(`${base}&page=1&seen=${first.places.map((place: { id: string }) => place.id).join(",")}`))).json();
+    expect(first.places).toHaveLength(12);
+    expect(second.places).toHaveLength(12);
+    expect(second.places.every((place: { id: string }) => !first.places.some((prior: { id: string }) => prior.id === place.id))).toBe(true);
+    const thirdSeen = [...first.places, ...second.places].map((place: { id: string }) => place.id).join(",");
+    const third = await (await GET(new NextRequest(`${base}&page=2&seen=${thirdSeen}`))).json();
+    expect(third.places.every((place: { id: string }) => !thirdSeen.split(",").includes(place.id))).toBe(true);
+    const thirdRequests = request.mock.calls.slice(-4);
+    expect(thirdRequests.every(([, options]) => JSON.parse(String(options?.body)).locationBias.circle.radius === 55000)).toBe(true);
+  });
+
+  it("passes Google's next page token through for a category list", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    const request = vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
+      const body = JSON.parse(String(options?.body));
+      return new Response(JSON.stringify({
+        places: [{ id: body.pageToken ? "second" : "first", displayName: { text: "Place" }, location: { latitude: 31.75, longitude: 34.99 } }],
+        ...(!body.pageToken ? { nextPageToken: "next-123" } : {}),
+      }), { status: 200 });
+    });
+    const first = await (await GET(new NextRequest("http://localhost/api/places?category=nature&lat=31.75&lng=34.99"))).json();
+    const second = await (await GET(new NextRequest("http://localhost/api/places?category=nature&lat=31.75&lng=34.99&page=1&pageToken=next-123&seen=first"))).json();
+    expect(first.nextPageToken).toBe("next-123");
+    expect(first.hasMore).toBe(true);
+    expect(second.places.map((place: { id: string }) => place.id)).toEqual(["second"]);
+    expect(second.hasMore).toBe(false);
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body)).pageToken).toBe("next-123");
+  });
 });
