@@ -4,7 +4,7 @@ import { AuthExperience } from "@/components/auth-experience";
 import { ModuleExperience } from "@/components/module-experience";
 import { getDictionary } from "@/i18n/dictionaries";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => new URLSearchParams(window.location.search) }));
 const t = getDictionary("en");
 
 describe("Milestone 2 experiences", () => {
@@ -62,6 +62,8 @@ describe("Milestone 2 experiences", () => {
     const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ places: [{
       id: "place-one", name: "Place One", address: "Tel Aviv", mapsUrl: "https://maps.google.com/?q=Place+One", photoName: null,
     }] }), { status: 200 }));
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "share", { configurable: true, value: share });
     try {
       render(<ModuleExperience module="places" t={t} />);
       const like = await screen.findByRole("button", { name: "Like Place One" });
@@ -71,11 +73,34 @@ describe("Milestone 2 experiences", () => {
       expect(save).toHaveAttribute("aria-pressed", "false");
       fireEvent.click(save);
       expect(save).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(screen.getByRole("button", { name: "Share Place One" }));
+      expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: "http://localhost:3000/en/places?place=place-one" }));
     } finally {
       fetcher.mockRestore();
       sessionStorage.removeItem("weig-places-state-en");
       localStorage.removeItem("weig-liked-places");
       localStorage.removeItem("weig-saved-places");
+      Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
+    }
+  });
+
+  it("opens a shared place directly even when it is not in the feed", async () => {
+    window.history.replaceState({}, "", "/en/places?place=shared-123");
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({ city: "Tel Aviv", manualCity: true }));
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      if (String(input).includes("/api/places/summary")) return new Response(JSON.stringify({ place: {
+        id: "shared-123", name: "Shared Place", address: "Haifa", mapsUrl: "https://maps.google.com/", photoName: null,
+      } }), { status: 200 });
+      return new Response(JSON.stringify({ places: [] }), { status: 200 });
+    });
+    try {
+      render(<ModuleExperience module="places" t={t} />);
+      expect(await screen.findByRole("dialog", { name: "Shared Place" })).toBeInTheDocument();
+      expect(fetcher.mock.calls.some(([input]) => String(input).includes("/api/places/summary?id=shared-123"))).toBe(true);
+    } finally {
+      fetcher.mockRestore();
+      window.history.replaceState({}, "", "/");
+      sessionStorage.removeItem("weig-places-state-en");
     }
   });
 });
