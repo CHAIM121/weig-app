@@ -94,6 +94,23 @@ describe("Israel places search", () => {
     expect(next.places.every((place: { id: string }) => !place.id.endsWith("-far"))).toBe(true);
   });
 
+  it("uses a learned theme while retaining other themes in the feed", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
+      const query = JSON.parse(String(options?.body)).textQuery as string;
+      const group = query.includes("טבע") ? "nature" : query.includes("כנסת") ? "heritage" : query.includes("למשפחות") ? "family" : "food";
+      return new Response(JSON.stringify({ places: Array.from({ length: 10 }, (_, index) => ({
+        id: `${group}-${index}`, displayName: { text: `${group}-${index}` },
+        location: { latitude: 31.75, longitude: 34.99 },
+      })) }), { status: 200 });
+    });
+    const result = await GET(new NextRequest("http://localhost/api/places?feed=1&lat=31.75&lng=34.99&prefer=nature"));
+    const places = (await result.json()).places as { theme: string }[];
+    expect(places).toHaveLength(12);
+    expect(places.filter(place => place.theme === "nature")).toHaveLength(6);
+    expect(new Set(places.map(place => place.theme))).toEqual(new Set(["nature", "heritage", "family", "food"]));
+  });
+
   it("treats an exact city search as a destination discovery feed", async () => {
     process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
     const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async (_, options) => {
@@ -143,7 +160,7 @@ describe("Israel places search", () => {
     const third = await (await GET(new NextRequest(`${base}&page=2&seen=${thirdSeen}`))).json();
     expect(third.places.every((place: { id: string }) => !thirdSeen.split(",").includes(place.id))).toBe(true);
     const thirdRequests = request.mock.calls.slice(-4);
-    expect(thirdRequests.every(([, options]) => JSON.parse(String(options?.body)).locationBias.circle.radius === 55000)).toBe(true);
+    expect(thirdRequests.every(([, options]) => JSON.parse(String(options?.body)).locationBias.circle.radius === 50000)).toBe(true);
   });
 
   it("passes Google's next page token through for a category list", async () => {
@@ -162,5 +179,15 @@ describe("Israel places search", () => {
     expect(second.places.map((place: { id: string }) => place.id)).toEqual(["second"]);
     expect(second.hasMore).toBe(false);
     expect(JSON.parse(String(request.mock.calls[1][1]?.body)).pageToken).toBe("next-123");
+  });
+
+  it("never sends Google a circle larger than its 50 km limit on later pages", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "private-test-key";
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({ places: [] }), { status: 200 }));
+    for (const page of [3, 4, 5]) {
+      const result = await GET(new NextRequest(`http://localhost/api/places?feed=1&lat=31.75&lng=34.99&page=${page}`));
+      expect(result.status).toBe(200);
+    }
+    expect(fetcher.mock.calls.every(([, options]) => JSON.parse(String(options?.body)).locationBias.circle.radius <= 50_000)).toBe(true);
   });
 });

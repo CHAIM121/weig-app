@@ -131,4 +131,26 @@ describe("Milestone 2 experiences", () => {
       sessionStorage.removeItem("weig-places-state-en");
     }
   });
+
+  it("uses granted device location when an old manual city was left blank", async () => {
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({ city: "", manualCity: true, view: "list", query: "old search" }));
+    const original = navigator.geolocation;
+    Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
+      getCurrentPosition: (success: PositionCallback) => success({ coords: { latitude: 31.75, longitude: 34.99 } } as GeolocationPosition),
+    } });
+    const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ places: [{
+      id: "nearby", name: "Nearby Place", address: "Beit Shemesh", photoName: null, mapsUrl: "https://maps.google.com/",
+    }], hasMore: false }), { status: 200 }));
+    try {
+      render(<ModuleExperience module="places" t={t} />);
+      expect(await screen.findByText("Nearby Place")).toBeInTheDocument();
+      expect(fetcher.mock.calls.some(([input]) => String(input).includes("lat=31.75") && String(input).includes("lng=34.99"))).toBe(true);
+      expect(fetcher.mock.calls.every(([input]) => !String(input).includes("old+search"))).toBe(true);
+    } finally {
+      fetcher.mockRestore();
+      sessionStorage.removeItem("weig-places-state-en");
+      localStorage.removeItem("weig-last-location");
+      Object.defineProperty(navigator, "geolocation", { configurable: true, value: original });
+    }
+  });
 });
