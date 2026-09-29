@@ -256,3 +256,34 @@ body{background:var(--paper);color:var(--ink)}
 .discover-loading-skeleton>p{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
 @keyframes weig-skeleton-shimmer{to{background-position-x:-200%}}
 @media(prefers-reduced-motion:reduce){.discover-skeleton-search,.discover-skeleton-chips span,.discover-skeleton-photo,.discover-skeleton-lines span{animation:none}}
+
+/* Keep the feed controls in one sticky surface, with the same bottom navigation as the list. */
+.discover-toolbar{display:contents}
+@media(max-width:799px){
+ .app-shell:has(.discover-editorial.feed-mode),.discover-app:has(.feed-mode){background:#fff;color:var(--ink)}
+ .app-shell:has(.discover-editorial.feed-mode) .topbar{background:#fff;border-bottom:1px solid var(--line);color:var(--ink);backdrop-filter:blur(16px)}
+ .app-shell:has(.discover-editorial.feed-mode) .topbar .brand{color:var(--ink)!important}
+ .app-shell:has(.discover-editorial.feed-mode) .topbar .icon-button{color:var(--ink)}
+ .app-shell:has(.discover-editorial.feed-mode) .bottom-nav{inset-inline:0;bottom:0;border-radius:0;padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);box-shadow:none;backdrop-filter:none}
+ .app-shell:has(.discover-editorial.feed-mode) .bottom-nav a{height:70px;color:var(--muted);font-size:12px}
+ .app-shell:has(.discover-editorial.feed-mode) .bottom-nav a[aria-current=page]{color:var(--brand)!important}
+ .app-shell:has(.discover-editorial.feed-mode) .bottom-nav a[aria-current=page] .nav-glyph{color:var(--brand)!important;background:#e8f4ff!important}
+ .discover-app:has(.feed-mode){padding-top:66px}
+ .discover-app:has(.feed-mode) .discover-toolbar{display:flex;flex-direction:column;order:0;position:sticky;top:66px;z-index:20;background:#fff;color:var(--ink);padding:8px 15px 10px;gap:8px;box-shadow:0 5px 18px #122f2b17}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-editorial{position:static;order:0;inset:auto;margin:0;padding:0;background:none}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-mode-switch,.discover-app:has(.feed-mode) .discover-toolbar .discover-saved-toggle{background:#f4f6f5;border:1px solid var(--line);color:var(--ink);backdrop-filter:none}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-mode-switch button{color:var(--muted)}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-mode-switch button[aria-pressed=true]{background:var(--ink);color:#fff}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-search{position:static;order:1;inset:auto;width:100%;height:46px;margin:0;border:1px solid var(--line);background:#f8faf9;color:var(--ink);box-shadow:none;backdrop-filter:none}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-search input{color:var(--ink)}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-search input::placeholder{color:var(--muted)}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-chips{position:static;order:2;inset:auto;margin:0 -15px;padding:0 15px 2px;background:#fff}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-chips button{background:#fff;color:var(--ink);border:1px solid var(--line);backdrop-filter:none}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-chips button[aria-pressed=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+ .discover-app:has(.feed-mode) .discover-toolbar .discover-context{position:static;order:3;margin:0}
+ .discover-app:has(.feed-mode) .discover-feed-card{height:calc(100dvh - 66px - 165px - 70px - env(safe-area-inset-bottom));min-height:390px}
+ .discover-app:has(.feed-mode) .discover-feed-top{top:18px}
+ .discover-app:has(.feed-mode) .discover-feed-actions{bottom:140px}
+ .discover-app:has(.feed-mode) .discover-feed-caption{bottom:28px}
+ .discover-app:has(.feed-mode) .discover-feed-credit{bottom:12px}
+}
