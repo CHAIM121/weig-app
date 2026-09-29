@@ -41,4 +41,19 @@ describe("Milestone 2 experiences", () => {
       sessionStorage.removeItem("weig-places-state-en");
     }
   });
+
+  it("opens a restored place dialog directly on the viewport layer", async () => {
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({
+      category: "all", city: "Tel Aviv", manualCity: true, query: "", view: "list",
+      selected: { id: "saved-place", he: "Saved place", en: "Saved place", image: "/images/place-placeholder.svg", areaHe: "Tel Aviv", areaEn: "Tel Aviv", maps: "Saved place", type: "views" },
+    }));
+    try {
+      render(<ModuleExperience module="places" t={t} />);
+      const dialog = await screen.findByRole("dialog", { name: "Saved place" });
+      expect(dialog.parentElement?.parentElement).toBe(document.body);
+      expect(document.body.style.overflow).toBe("hidden");
+    } finally {
+      sessionStorage.removeItem("weig-places-state-en");
+    }
+  });
 });

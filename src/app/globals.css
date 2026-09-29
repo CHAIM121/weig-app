@@ -233,8 +233,6 @@ body{background:var(--paper);color:var(--ink)}
 .discover-chips button:active,.discover-mode-switch button:active,.discover-detail-actions a:active,.discover-feed-caption button:active,.module-add:active,.call-button:active,.keypad button:active{transform:scale(.97)}
 @media(prefers-reduced-motion:reduce){.app-content>.discover-app,.app-content>.module-page,.app-content>.ai-layout,.app-content>.ai-redesign,.discover-detail,.places-detail,.modal,.drawer,.discover-detail-photo.is-expanded{animation:none!important}.discover-gallery-track,.discover-feed-card,.discover-result,.expense-list article,.suggestions button,.call-recent,.expenses-balance,.discover-chips button,.discover-mode-switch button,.discover-saved-toggle,.expenses-filter button,.bottom-nav a .nav-glyph,.menu-row,.drawer-language,.discover-detail-actions a,.discover-feed-caption button,.module-add,.auth-submit,.call-button,.composer button,.discover-live-reviews>button{transition:none!important}}
 
-/* A transformed page animation makes fixed dialogs follow the full document instead of the viewport. */
-.app-content>.discover-app:has(.discover-detail-wrap){animation:none}
 .discover-detail-wrap{position:fixed;inset:0;z-index:80}
 @media(max-width:799px){
  .discover-detail-wrap{place-items:stretch}
@@ -242,3 +240,19 @@ body{background:var(--paper);color:var(--ink)}
  .discover-detail-photo{height:clamp(230px,37dvh,380px)}
  .discover-detail-body{padding-bottom:max(32px,env(safe-area-inset-bottom))}
 }
+.discover-loading-skeleton{min-height:calc(100dvh - 170px);padding:24px 18px 90px;background:#f6f9f8;color:var(--ink)}
+.discover-skeleton-heading{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:800;margin:8px 0 23px}
+.discover-skeleton-heading svg{color:var(--brand)}
+.discover-skeleton-search,.discover-skeleton-chips span,.discover-skeleton-photo,.discover-skeleton-lines span{display:block;background:linear-gradient(100deg,#e7eeeb 20%,#f7faf9 45%,#e7eeeb 70%);background-size:200% 100%;animation:weig-skeleton-shimmer 2s linear infinite}
+.discover-skeleton-search{height:51px;border-radius:17px}
+.discover-skeleton-chips{display:flex;gap:9px;margin:18px 0 24px}
+.discover-skeleton-chips span{height:34px;width:88px;border-radius:99px}
+.discover-skeleton-chips span:nth-child(2){width:112px}
+.discover-skeleton-card{border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 8px 30px #12352a10}
+.discover-skeleton-photo{height:clamp(220px,40dvh,400px)}
+.discover-skeleton-lines{padding:20px;display:grid;gap:12px}
+.discover-skeleton-lines span{height:17px;width:67%;border-radius:6px}
+.discover-skeleton-lines span:last-child{width:42%;height:12px}
+.discover-loading-skeleton>p{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+@keyframes weig-skeleton-shimmer{to{background-position-x:-200%}}
+@media(prefers-reduced-motion:reduce){.discover-skeleton-search,.discover-skeleton-chips span,.discover-skeleton-photo,.discover-skeleton-lines span{animation:none}}
