@@ -193,6 +193,11 @@ body{background:var(--paper);color:var(--ink)}
 .discover-google-mark{width:17px;height:17px;object-fit:contain;margin-inline-start:4px}
 .discover-live-facts .discover-open{color:#16834f;font-weight:800}
 .discover-live-facts .discover-closed{color:#c44147;font-weight:800}
+.discover-live-facts .discover-live-hours{border:0;padding:0 25px 2px}
+.discover-live-facts .discover-live-hours button{padding:0;font-size:13px}
+.discover-detail-body .discover-detail-travel{display:flex;align-items:center;gap:6px;margin:7px 0 0;color:#126b79;font-size:13px;font-weight:700}
+.discover-feed-caption .discover-feed-travel{display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700;margin:6px 0 13px}
+.discover-result-copy .discover-result-travel{color:#11768a;font-weight:700;white-space:nowrap}
 .discover-live-reviews>button{width:100%;justify-content:space-between;background:#f1f7f7;border:1px solid #d9e9ea;border-radius:12px;padding:14px 16px;margin:7px 0;color:#116b79;cursor:pointer}
 .discover-live-reviews>button span{flex:1;text-align:start}
 .discover-live-reviews>button:disabled{opacity:1;cursor:default}

@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ place: {
       id, name: place.displayName.text, address: place.formattedAddress ?? "",
+      location: lat != null && lng != null ? { latitude: lat, longitude: lng } : null,
       mapsUrl: place.googleMapsUri ?? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${encodeURIComponent(id)}`,
       photoName: place.photos?.[0]?.name ?? null,
       photoCredits: place.photos?.[0]?.authorAttributions ?? [],
