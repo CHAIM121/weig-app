@@ -56,4 +56,26 @@ describe("Milestone 2 experiences", () => {
       sessionStorage.removeItem("weig-places-state-en");
     }
   });
+
+  it("keeps a feed like separate from saving a place", async () => {
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({ city: "Tel Aviv", manualCity: true, view: "feed" }));
+    const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ places: [{
+      id: "place-one", name: "Place One", address: "Tel Aviv", mapsUrl: "https://maps.google.com/?q=Place+One", photoName: null,
+    }] }), { status: 200 }));
+    try {
+      render(<ModuleExperience module="places" t={t} />);
+      const like = await screen.findByRole("button", { name: "Like Place One" });
+      const save = screen.getByRole("button", { name: "Save Place One" });
+      fireEvent.click(like);
+      expect(like).toHaveAttribute("aria-pressed", "true");
+      expect(save).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(save);
+      expect(save).toHaveAttribute("aria-pressed", "true");
+    } finally {
+      fetcher.mockRestore();
+      sessionStorage.removeItem("weig-places-state-en");
+      localStorage.removeItem("weig-liked-places");
+      localStorage.removeItem("weig-saved-places");
+    }
+  });
 });

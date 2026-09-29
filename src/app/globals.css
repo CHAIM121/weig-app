@@ -287,3 +287,15 @@ body{background:var(--paper);color:var(--ink)}
  .discover-app:has(.feed-mode) .discover-feed-caption{bottom:28px}
  .discover-app:has(.feed-mode) .discover-feed-credit{bottom:12px}
 }
+
+/* Four independent feed actions, with a compact social-style rail. */
+.discover-feed-actions{gap:9px}
+.discover-feed-actions button,.discover-feed-actions a{width:54px;height:54px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;text-align:center}
+.discover-feed-actions span{font-size:10px;font-weight:800;line-height:1;white-space:nowrap}
+.discover-feed-actions button[aria-pressed=true]{color:#83e5ff}
+@media(max-width:799px){
+ .discover-app:has(.feed-mode) .discover-feed-actions{bottom:74px;inset-inline-end:13px;gap:8px}
+ .discover-app:has(.feed-mode) .discover-feed-actions button,.discover-app:has(.feed-mode) .discover-feed-actions a{width:52px;height:52px;padding:4px 2px;gap:3px;border:1px solid #ffffff45;border-radius:16px;background:#101a24a8;color:#fff;box-shadow:0 4px 14px #0004;backdrop-filter:blur(8px)}
+ .discover-app:has(.feed-mode) .discover-feed-actions button[aria-pressed=true]{color:#8deaff!important;border-color:#8deaff88}
+ .discover-app:has(.feed-mode) .discover-feed-caption{max-width:calc(100% - 95px)}
+}
