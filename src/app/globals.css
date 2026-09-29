@@ -332,3 +332,11 @@ body{background:var(--paper);color:var(--ink)}
  .discover-app:has(.feed-mode) .discover-feed-list{gap:17px;padding:13px 13px 24px}
  .discover-app:has(.feed-mode) .discover-feed-card{width:100%;max-height:none;aspect-ratio:4/5;border-radius:16px;box-shadow:0 7px 22px #12232b1c}
 }
+
+/* Place details: navigation and save are compact, equal-height actions. */
+.discover-detail-actions{align-items:center;justify-content:flex-start;gap:10px;margin-top:19px}
+.discover-detail-actions a{flex:0 1 160px;min-height:52px;padding:0 18px;background:#eaf4fb!important;border:1px solid #cfe4f3!important;color:#155f98!important;border-radius:14px;font-size:15px;box-shadow:none}
+.discover-detail-actions a:hover{background:#dceefb!important;filter:none}
+.discover-detail-actions button{width:52px;height:52px;flex:none;border:1px solid #d7e3e9;background:#f6f9fb;color:#315b72;border-radius:14px;box-shadow:none}
+.discover-detail-actions button[aria-pressed=true]{background:#eaf4fb;border-color:#a8d6ec;color:#155f98}
+.discover-detail-actions a:focus-visible,.discover-detail-actions button:focus-visible{outline:3px solid #6dc8f1;outline-offset:2px}
