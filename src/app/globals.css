@@ -299,3 +299,21 @@ body{background:var(--paper);color:var(--ink)}
  .discover-app:has(.feed-mode) .discover-feed-actions button[aria-pressed=true]{color:#8deaff!important;border-color:#8deaff88}
  .discover-app:has(.feed-mode) .discover-feed-caption{max-width:calc(100% - 95px)}
 }
+
+/* Quiet, icon-only actions. The heart celebration runs only when liking. */
+.discover-feed-actions button,.discover-feed-actions a{position:relative;width:46px;height:46px;padding:0;display:grid;place-items:center;border-radius:50%;transition:transform .18s ease,background .18s ease}
+.discover-feed-actions button:active,.discover-feed-actions a:active{transform:scale(.9)}
+.discover-feed-actions button.is-heart-burst svg{animation:weig-heart-pop .48s ease-out}
+.discover-feed-actions button.is-heart-burst::before,.discover-feed-actions button.is-heart-burst::after{content:"♥";position:absolute;left:50%;top:25%;color:#ff6793;font-size:14px;pointer-events:none;animation:weig-heart-float .7s ease-out forwards}
+.discover-feed-actions button.is-heart-burst::after{--heart-x:18px;animation-delay:.08s;font-size:11px}
+@keyframes weig-heart-pop{45%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes weig-heart-float{0%{opacity:0;transform:translate(-50%,0) scale(.6)}25%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--heart-x,-17px)),-35px) scale(1.2)}}
+@media(max-width:799px){.discover-app:has(.feed-mode) .discover-feed-actions{bottom:85px;gap:10px}.discover-app:has(.feed-mode) .discover-feed-actions button,.discover-app:has(.feed-mode) .discover-feed-actions a{width:46px;height:46px;padding:0;border-radius:50%;background:#101a2499}}
+@media(prefers-reduced-motion:reduce){.discover-feed-actions button.is-heart-burst svg,.discover-feed-actions button.is-heart-burst::before,.discover-feed-actions button.is-heart-burst::after{animation:none}.discover-feed-actions button.is-heart-burst::before,.discover-feed-actions button.is-heart-burst::after{display:none}}
+
+/* Photo-viewer inspired floating glyphs, without visible button capsules. */
+.discover-feed-actions button,.discover-feed-actions a,.discover-app:has(.feed-mode) .discover-feed-actions button,.discover-app:has(.feed-mode) .discover-feed-actions a{width:42px;height:42px;border:0;border-radius:0;background:transparent;color:#fff;box-shadow:none;backdrop-filter:none;padding:0;filter:drop-shadow(0 1px 3px #000c)}
+.discover-feed-actions button:hover,.discover-feed-actions a:hover{background:transparent;transform:scale(1.08)}
+.discover-feed-actions button[aria-pressed=true],.discover-app:has(.feed-mode) .discover-feed-actions button[aria-pressed=true]{color:#ff759b!important;border:0}
+.discover-feed-actions button:last-child[aria-pressed=true],.discover-app:has(.feed-mode) .discover-feed-actions button:last-child[aria-pressed=true]{color:#fff!important}
+@media(max-width:799px){.discover-app:has(.feed-mode) .discover-feed-actions{inset-inline-end:17px;bottom:82px;gap:13px}}
