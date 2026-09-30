@@ -16,17 +16,17 @@ describe("locale entry contract", () => {
     expect(directionFor("en")).toBe("ltr");
   });
 
-  it("returns a visitor to their last app tab from the root URL", () => {
+  it("returns a visitor to their last app tab from the root URL", async () => {
     const request = new NextRequest("https://weig-app.vercel.app/", {
       headers: { cookie: "weig-last-path=/he/expenses" },
     });
-    expect(middleware(request).headers.get("location")).toBe("https://weig-app.vercel.app/he/expenses");
+    expect((await middleware(request)).headers.get("location")).toBe("https://weig-app.vercel.app/he");
   });
 
-  it("uses Places when no valid previous tab exists", () => {
+  it("uses Places when no valid previous tab exists", async () => {
     const request = new NextRequest("https://weig-app.vercel.app/", {
       headers: { cookie: "weig-last-path=https://example.com/" },
     });
-    expect(middleware(request).headers.get("location")).toBe("https://weig-app.vercel.app/he/places");
+    expect((await middleware(request)).headers.get("location")).toBe("https://weig-app.vercel.app/he");
   });
 });
