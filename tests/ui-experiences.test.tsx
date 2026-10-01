@@ -9,13 +9,26 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 vi.mock("@/lib/supabase/auth-client", () => ({
-  createAuthBrowserClient: () => ({
-    auth: {
-      signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
-      verifyOtp: vi.fn().mockResolvedValue({ error: null }),
-      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
-    },
-  }),
+  createAuthBrowserClient: () => {
+    const query: any = {
+      select: vi.fn(), eq: vi.fn(), lte: vi.fn(), order: vi.fn(), limit: vi.fn(), maybeSingle: vi.fn(),
+      upsert: vi.fn(), update: vi.fn(),
+      then: (resolve: (value: { data: null; error: null }) => unknown) => Promise.resolve({ data: null, error: null }).then(resolve),
+    };
+    ["select", "eq", "lte", "order", "limit", "update"].forEach((key) => query[key].mockReturnValue(query));
+    query.maybeSingle.mockResolvedValue({ data: null, error: null });
+    query.upsert.mockResolvedValue({ data: null, error: null });
+    return {
+      auth: {
+        signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
+        verifyOtp: vi.fn().mockResolvedValue({ error: null }),
+        signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      },
+      from: vi.fn(() => query),
+    };
+  },
 }));
 const t = getDictionary("en");
 
@@ -66,6 +79,7 @@ describe("Milestone 2 experiences", () => {
       const dialog = await screen.findByRole("dialog", { name: "Saved place" });
       expect(dialog.parentElement?.parentElement).toBe(document.body);
       expect(document.body.style.overflow).toBe("hidden");
+      expect(screen.getByRole("button", { name: "I've been here" })).toBeInTheDocument();
     } finally {
       sessionStorage.removeItem("weig-places-state-en");
     }
