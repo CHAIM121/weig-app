@@ -25,11 +25,13 @@ describe("Milestone 2 experiences", () => {
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
-  it("continues email authentication to the OTP state", async () => {
+  it("continues email authentication to the sign-in-link state", async () => {
     render(<AuthExperience t={t} locale="en" />);
     fireEvent.change(screen.getByLabelText(t.auth.email), { target: { value: "demo@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: t.auth.send }));
     expect(await screen.findByText(t.auth.codeTitle)).toBeInTheDocument();
+    expect(screen.getByText(/Open the message and tap the link to sign in/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(t.auth.code)).not.toBeInTheDocument();
   });
 
   it("adds an expense locally without claiming persistence", () => {
