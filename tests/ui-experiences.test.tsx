@@ -4,7 +4,19 @@ import { AuthExperience } from "@/components/auth-experience";
 import { ModuleExperience } from "@/components/module-experience";
 import { getDictionary } from "@/i18n/dictionaries";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => new URLSearchParams(window.location.search) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+vi.mock("@/lib/supabase/auth-client", () => ({
+  createAuthBrowserClient: () => ({
+    auth: {
+      signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
+      verifyOtp: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+    },
+  }),
+}));
 const t = getDictionary("en");
 
 describe("Milestone 2 experiences", () => {
@@ -13,11 +25,11 @@ describe("Milestone 2 experiences", () => {
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
-  it("continues email authentication to the OTP state", () => {
+  it("continues email authentication to the OTP state", async () => {
     render(<AuthExperience t={t} locale="en" />);
     fireEvent.change(screen.getByLabelText(t.auth.email), { target: { value: "demo@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: t.auth.send }));
-    expect(screen.getByText(t.auth.codeTitle)).toBeInTheDocument();
+    expect(await screen.findByText(t.auth.codeTitle)).toBeInTheDocument();
   });
 
   it("adds an expense locally without claiming persistence", () => {
