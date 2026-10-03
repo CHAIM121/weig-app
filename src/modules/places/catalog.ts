@@ -4,7 +4,7 @@ export type CatalogPlace = {id:string; name:string; names:Record<string,unknown>
 export const catalogCategories:Record<string,string[]> = {
   restaurants:[], // Requires accepted, unexpired kosher evidence; never infer from category/name.
   bakeries:["cafe","bakery","coffee_shop"], groceries:["grocery_store","supermarket"],
-  synagogues:["synagogue"], tombs:[], mikvaot:[], chabad:[],
+  synagogues:["synagogue","jewish_place_of_worship"], tombs:[], mikvaot:[], chabad:[],
   nature:["national_park","nature_reserve","hiking_trail"], parks:["park","national_park","playground"],
   family:["museum","zoo","amusement_park","aquarium","playground"],
   beaches:["beach","hot_spring"], stays:["hotel","hostel","guest_house"],
@@ -21,7 +21,7 @@ export function presentCatalogPlace(p:CatalogPlace) {
   return {id:`weig_${p.id}`,name:p.name,address:p.address,location:{latitude:p.latitude,longitude:p.longitude},
     mapsUrl:`https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`,
     photoName:null,photoCredits:[],attributions:[{provider:"Overture Maps",providerUri:"https://docs.overturemaps.org/attribution/"}],
-    theme:/restaurant|cafe|bakery|grocery/.test(p.category)?"food":/museum|zoo|playground|amusement/.test(p.category)?"family":/synagogue|historic/.test(p.category)?"heritage":/park|nature|trail|beach/.test(p.category)?"nature":"other",
+    theme:/restaurant|cafe|bakery|grocery/.test(p.category)?"food":/museum|zoo|playground|amusement/.test(p.category)?"family":/synagogue|jewish_place_of_worship|historic/.test(p.category)?"heritage":/park|nature|trail|beach/.test(p.category)?"nature":"other",
     source:"weig_catalog",verification:"unverified",release:p.release};
 }
 export async function catalogPlace(id:string) {
