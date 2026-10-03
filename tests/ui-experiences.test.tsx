@@ -69,6 +69,24 @@ describe("Milestone 2 experiences", () => {
     }
   });
 
+  it("keeps the Places controls visible while only the results are loading", async () => {
+    sessionStorage.setItem("weig-places-state-en", JSON.stringify({ city: "Tel Aviv", manualCity: true, view: "feed" }));
+    let finishRequest: ((response: Response) => void) | undefined;
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(() => new Promise<Response>((resolve) => { finishRequest = resolve; }));
+    try {
+      const { container } = render(<ModuleExperience module="places" t={t} />);
+      expect(await screen.findByRole("status", { name: "Finding places for you…" })).toBeInTheDocument();
+      expect(screen.getByRole("textbox", { name: t.places.search })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "For you" })).toBeInTheDocument();
+      expect(container.querySelector(".discover-loading-skeleton")).not.toBeInTheDocument();
+      expect(container.querySelector(".discover-results-skeleton")).toBeInTheDocument();
+    } finally {
+      finishRequest?.(new Response(JSON.stringify({ places: [] }), { status: 200 }));
+      fetcher.mockRestore();
+      sessionStorage.removeItem("weig-places-state-en");
+    }
+  });
+
   it("opens a restored place dialog directly on the viewport layer", async () => {
     sessionStorage.setItem("weig-places-state-en", JSON.stringify({
       category: "all", city: "Tel Aviv", manualCity: true, query: "", view: "list",
