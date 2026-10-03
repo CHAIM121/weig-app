@@ -245,22 +245,24 @@ body{background:var(--paper);color:var(--ink)}
  .discover-detail-photo{height:clamp(230px,37dvh,380px)}
  .discover-detail-body{padding-bottom:max(32px,env(safe-area-inset-bottom))}
 }
-.discover-loading-skeleton{min-height:calc(100dvh - 170px);padding:24px 18px 90px;background:#f6f9f8;color:var(--ink)}
-.discover-skeleton-heading{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:800;margin:8px 0 23px}
-.discover-skeleton-heading svg{color:var(--brand)}
-.discover-skeleton-search,.discover-skeleton-chips span,.discover-skeleton-photo,.discover-skeleton-lines span{display:block;background:linear-gradient(100deg,#e7eeeb 20%,#f7faf9 45%,#e7eeeb 70%);background-size:200% 100%;animation:weig-skeleton-shimmer 2s linear infinite}
-.discover-skeleton-search{height:51px;border-radius:17px}
-.discover-skeleton-chips{display:flex;gap:9px;margin:18px 0 24px}
-.discover-skeleton-chips span{height:34px;width:88px;border-radius:99px}
-.discover-skeleton-chips span:nth-child(2){width:112px}
+.discover-results-skeleton{min-height:360px;color:var(--ink)}
+.discover-skeleton-photo,.discover-skeleton-lines span,.discover-skeleton-row>span,.discover-skeleton-row i{display:block;background:linear-gradient(100deg,#e7eeeb 20%,#f7faf9 45%,#e7eeeb 70%);background-size:200% 100%;animation:weig-skeleton-shimmer 2s linear infinite}
 .discover-skeleton-card{border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 8px 30px #12352a10}
 .discover-skeleton-photo{height:clamp(220px,40dvh,400px)}
 .discover-skeleton-lines{padding:20px;display:grid;gap:12px}
 .discover-skeleton-lines span{height:17px;width:67%;border-radius:6px}
 .discover-skeleton-lines span:last-child{width:42%;height:12px}
-.discover-loading-skeleton>p{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.discover-results-skeleton>p{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.discover-skeleton-list{display:grid;gap:1px;background:var(--line);border-radius:18px;overflow:hidden}
+.discover-skeleton-row{display:grid;grid-template-columns:76px 1fr;gap:14px;align-items:center;background:#fff;padding:10px}
+.discover-skeleton-row>span{width:76px;height:70px;border-radius:12px}
+.discover-skeleton-row>div{display:grid;gap:10px}
+.discover-skeleton-row i{height:13px;width:72%;border-radius:6px}
+.discover-skeleton-row i:last-child{height:10px;width:48%}
+.discover-results-skeleton.is-list .discover-skeleton-card{display:none}
 @keyframes weig-skeleton-shimmer{to{background-position-x:-200%}}
-@media(prefers-reduced-motion:reduce){.discover-skeleton-search,.discover-skeleton-chips span,.discover-skeleton-photo,.discover-skeleton-lines span{animation:none}}
+@media(max-width:799px){.discover-results-skeleton.is-feed .discover-skeleton-card{border-radius:0;box-shadow:none}.discover-results-skeleton.is-feed .discover-skeleton-photo{height:calc(100dvh - 66px - 165px - 70px - env(safe-area-inset-bottom));min-height:390px}.discover-results-skeleton.is-list{padding:0 20px}.discover-results-skeleton.is-list>p{margin-bottom:0}}
+@media(prefers-reduced-motion:reduce){.discover-skeleton-photo,.discover-skeleton-lines span,.discover-skeleton-row>span,.discover-skeleton-row i{animation:none}}
 
 /* Keep the feed controls in one sticky surface, with the same bottom navigation as the list. */
 .discover-toolbar{display:contents}
