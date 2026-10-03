@@ -88,6 +88,7 @@ describe("Milestone 2 experiences", () => {
   });
 
   it("opens a restored place dialog directly on the viewport layer", async () => {
+    localStorage.setItem("weig-navigation-preference-v1", "both");
     sessionStorage.setItem("weig-places-state-en", JSON.stringify({
       category: "all", city: "Tel Aviv", manualCity: true, query: "", view: "list",
       selected: { id: "saved-place", he: "Saved place", en: "Saved place", image: "/images/place-placeholder.svg", areaHe: "Tel Aviv", areaEn: "Tel Aviv", maps: "Saved place", type: "views" },
@@ -98,8 +99,12 @@ describe("Milestone 2 experiences", () => {
       expect(dialog.parentElement?.parentElement).toBe(document.body);
       expect(document.body.style.overflow).toBe("hidden");
       expect(screen.getByRole("button", { name: "I've been here" })).toBeInTheDocument();
+      expect(screen.queryByText("WEIG ratings start here")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Waze" })).toHaveAttribute("href", expect.stringContaining("waze.com/ul?q=Saved%20place"));
+      expect(screen.getByRole("link", { name: "Google Maps" })).toHaveAttribute("href", expect.stringContaining("google.com/maps/search"));
     } finally {
       sessionStorage.removeItem("weig-places-state-en");
+      localStorage.removeItem("weig-navigation-preference-v1");
     }
   });
 
