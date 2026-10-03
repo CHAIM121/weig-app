@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Waze">
+  <path fill="#fff" stroke="#21bfd2" stroke-width="4" stroke-linejoin="round" d="M51 13c-6-6-18-8-28-3C13 15 9 25 11 35c1 6-1 10-5 14 7 1 12 0 16-3 7 4 17 4 24-1 10-7 12-23 5-32Z"/>
+  <path fill="none" stroke="#172b4d" stroke-width="3" stroke-linecap="round" d="M24 28h.1M40 28h.1M24 36c5 4 11 4 16 0"/>
+  <circle cx="22" cy="49" r="5" fill="#172b4d"/>
+  <circle cx="44" cy="49" r="5" fill="#172b4d"/>
+</svg>
