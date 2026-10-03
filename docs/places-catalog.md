@@ -1,0 +1,59 @@
+# מאגר המקומות העצמאי של WEIG
+
+## מה נבנה
+
+בחירת מקור Google / מאגר WEIG בעמוד המקומות. Google נשאר ברירת המחדל.
+מאגר WEIG כולל חיפוש לפי שם ועיר או מרחק, קטגוריות, דפדוף,
+פרטי מקום, שמירה וביקורות באמצעות המערכת הקיימת.
+מפת WEIG מציגה עד 300 תוצאות מאזור החיפוש; לחיצה על נקודה פותחת מקום.
+אפשר להזיז את המפה וללחוץ "חפש באזור המפה". אין נתוני Google על מפת OSM.
+
+## נתוני אמת ראשונים
+
+Overture release 2026-09-23.1, bbox 34.94,31.68,35.04,31.80:
+1,269 רשומות באזור בית שמש והסביבה. זו תיבת אזור ולא גבול עיר מדויק.
+מזהי Overture ייחודיים אינם הוכחה שאין כפילויות של אותו עסק.
+נתוני המקור נשמרים בטבלת weig_place_sources, כולל רישיונות המקורות
+ומועדי העדכון המקוריים. imported_at הוא זמן היבוא, ולא מועד אימות העסק.
+
+## הרחבת המאגר
+
+יש להתקין overturemaps ולהריץ:
+
+```bash
+python -m overturemaps download --bbox=34.94,31.68,35.04,31.80 -f geojsonseq -t place -r 2026-09-23.1 -o places.geojsonseq
+python scripts/prepare-overture.py places.geojsonseq 2026-09-23.1 records.json
+node scripts/import-overture.mjs records.json "Bet Shemesh"
+```
+
+לשנות bbox ו-release לפי האזור והגרסה הנדרשים. היבוא משתמש במשתני הסביבה
+NEXT_PUBLIC_SUPABASE_URL ו-SUPABASE_SERVICE_ROLE_KEY בצד מנהל/שרת בלבד.
+יבוא חוזר מעדכן את הרשומה בלי לשנות את מזהה WEIG. אין מחיקה של מקומות
+רק משום שחסרו בקובץ חלקי; permanently_closed מוסתר מהתוצאות.
+
+## מה עדיין דורש בנייה
+
+אין עדיין סריקה אוטומטית של אתרי עסקים, חיבור למאגרי הממשלה,
+התאמה בין מקורות נוספים, מיזוג כפילויות, או עדכון חודשי מתוזמן.
+טבלת weig_place_claims מכינה שמירת עובדות ממקורות נוספים עם מקור,
+תאריך, תוקף וסטטוס pending/accepted/rejected/conflict; היא אינה מנוע העשרה פעיל.
+אין הצגת כשרות מתוך שם/קטגוריית העסק. קטגוריית מסעדות כשרות ריקה
+במקור WEIG עד שיהיו ראיות כשרות מאומתות. אין תמונות/שעות/דירוגי Google
+שמורים במאגר העצמאי. כיסוי עולמי דורש יבוא נוסף, ניקוי ועדכונים.
+
+## מפה ורישיונות
+
+Leaflet, עם OSM tiles כברירת מחדל וללא הורדות רקע/אופליין.
+בסיס המפה הוא ספק חיצוני, בעוד הנקודות הן ממסד WEIG.
+לפריסה בקנה מידה גדול יש לבחור ספק tiles מתאים באמצעות
+NEXT_PUBLIC_MAP_TILE_URL ו-NEXT_PUBLIC_MAP_ATTRIBUTION; OSM הציבורי
+אינו שירות עם התחייבות לזמינות. Attribution נשאר גלוי.
+https://operations.osmfoundation.org/policies/tiles/
+https://docs.overturemaps.org/attribution/
+יש לשמר את רישיונות וייחוס המקורות בייצוא והפצה בהתאם לרשומות sources.
+
+## בדיקות
+
+npm test, npm run typecheck, npm run build.
+במסד: חיפוש לפי עיר ומרחק; public יכול לקרוא published בלבד;
+אין הרשאות כתיבה/יבוא ל-anon או authenticated. Import RPC מיועד ל-service_role.

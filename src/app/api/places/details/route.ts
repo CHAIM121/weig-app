@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { catalogPlace } from "@/modules/places/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_PLACE" }, { status: 400, headers: noStore });
   }
   const key = process.env.GOOGLE_PLACES_API_KEY;
+  if(id.startsWith("weig_")) {
+    try {
+      const place=await catalogPlace(id);
+      if(!place)return NextResponse.json({error:"PLACE_NOT_FOUND"},{status:404,headers:noStore});
+      return NextResponse.json({phone:place.phone,website:place.website?.startsWith("https://")?place.website:null,rating:null,ratingCount:null,openNow:null,hours:[],photos:[],source:"weig_catalog",release:place.release,importedAt:place.imported_at},{headers:noStore});
+    } catch{return NextResponse.json({error:"CATALOG_UNAVAILABLE"},{status:503,headers:noStore});}
+  }
   if (!key) return NextResponse.json({ error: "PLACES_NOT_CONFIGURED" }, { status: 503, headers: noStore });
 
   const reviews = params.get("reviews") === "1";

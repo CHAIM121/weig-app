@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import {catalogPlace,presentCatalogPlace} from "@/modules/places/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_PLACE" }, { status: 400, headers });
   }
   const key = process.env.GOOGLE_PLACES_API_KEY;
+  if(id.startsWith("weig_")) {
+    try {const place=await catalogPlace(id);return place?NextResponse.json({place:presentCatalogPlace(place)},{headers}):NextResponse.json({error:"PLACE_NOT_FOUND"},{status:404,headers});}
+    catch{return NextResponse.json({error:"CATALOG_UNAVAILABLE"},{status:503,headers});}
+  }
   if (!key) return NextResponse.json({ error: "PLACES_NOT_CONFIGURED" }, { status: 503, headers });
 
   try {
