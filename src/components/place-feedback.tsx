@@ -312,9 +312,9 @@ export function PlaceFeedbackSummary({ place, he, onVisited }: { place: Feedback
   const percent = feedback.length ? Math.round((liked / feedback.length) * 100) : 0;
   const reviews = feedback.filter((item) => item.review).slice(0, 3);
 
-  return <section className="weig-feedback-summary" aria-label={he ? "דירוג משתמשי WEIG" : "WEIG community rating"}>
+  return <section className={`weig-feedback-summary ${feedback.length ? "has-feedback" : "is-empty"}`} aria-label={he ? "דירוג משתמשי WEIG" : "WEIG community rating"}>
     <div>
-      {feedback.length ? <button type="button" className="weig-feedback-score" onClick={() => setOpen((value) => !value)} aria-expanded={open}><Heart size={17} fill="currentColor"/><strong>{percent}% {he ? "אהבו" : "liked it"}</strong><span>· {feedback.length} {he ? "דירוגים" : "ratings"}</span></button> : <span className="weig-feedback-empty"><Heart size={17}/>{he ? "הדירוגים של WEIG מתחילים כאן" : "WEIG ratings start here"}</span>}
+      {feedback.length ? <button type="button" className="weig-feedback-score" onClick={() => setOpen((value) => !value)} aria-expanded={open}><Heart size={17} fill="currentColor"/><strong>{percent}% {he ? "אהבו" : "liked it"}</strong><span>· {feedback.length} {he ? "דירוגים" : "ratings"}</span></button> : null}
       <button type="button" className="weig-feedback-visited" onClick={onVisited}>{he ? "כבר הייתי כאן" : "I've been here"}</button>
     </div>
     {open && <div className="weig-feedback-reviews">{reviews.length ? reviews.map((item) => <article key={item.feedback_id}><strong>{item.display_name} · {choices.find((choice) => choice.score === item.score)?.emoji}</strong><p>{item.review}</p></article>) : <p><MessageCircle size={17}/>{he ? "עוד לא נכתבו תגובות למקום הזה." : "No notes have been added yet."}</p>}</div>}
