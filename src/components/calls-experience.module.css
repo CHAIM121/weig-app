@@ -5,3 +5,4 @@
 @media(prefers-reduced-motion:reduce){.phone button{transition:none}}
 @media(max-width:799px){.phone{padding-inline:16px}}
 @media(max-width:480px) and (max-height:760px){.header{padding-bottom:10px}.header h1{font-size:25px}.lineCard{padding:9px 12px;margin-bottom:10px}.tabs button{padding-block:7px}.dialer{padding-top:12px}.numberArea{padding:12px 0 10px}.keypad button{height:55px}.keypad{gap:7px 14px;padding-bottom:12px}.callButton{height:52px}.panel{min-height:420px}.caption{margin-top:5px}}
+@media(min-width:481px){.dialer{padding-top:18px;padding-bottom:14px}.numberArea{padding:12px 0 10px}.keypad{gap:8px 16px}.keypad button{height:60px}.panel{min-height:470px}}
