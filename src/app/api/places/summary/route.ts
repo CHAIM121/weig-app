@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
   try {
     const locale = request.nextUrl.searchParams.get("locale") === "en" ? "en" : "he";
     const response = await fetch(`https://places.googleapis.com/v1/places/${id}?languageCode=${locale}`, {
-      headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "id,displayName,formattedAddress,location,googleMapsUri,photos,attributions,addressComponents" },
+      headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "id,displayName,formattedAddress,location,googleMapsUri,photos,attributions,addressComponents,primaryType" },
       cache: "no-store",
       signal: AbortSignal.timeout(8500),
     });
     if (!response.ok) return NextResponse.json({ error: "PLACES_UPSTREAM_ERROR" }, { status: 502, headers });
     const place = await response.json() as {
-      id?: string; displayName?: { text?: string }; formattedAddress?: string;
+      id?: string; displayName?: { text?: string }; formattedAddress?: string; primaryType?: string;
       location?: { latitude?: number; longitude?: number }; googleMapsUri?: string;
       photos?: { name?: string; authorAttributions?: { displayName?: string; uri?: string }[] }[];
       attributions?: { provider?: string; providerUri?: string }[];
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ place: {
       id, name: place.displayName.text, address: place.formattedAddress ?? "",
+      theme: /restaurant|cafe|bakery|food|grocery|supermarket|ice_cream|sandwich|dessert/.test(place.primaryType ?? "") ? "food" : "other",
       location: lat != null && lng != null ? { latitude: lat, longitude: lng } : null,
       mapsUrl: place.googleMapsUri ?? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${encodeURIComponent(id)}`,
       photoName: place.photos?.[0]?.name ?? null,

@@ -365,3 +365,5 @@ body{background:var(--paper);color:var(--ink)}
 
 .weig-catalog-map{border-radius:20px;overflow:hidden;background:#fff;border:1px solid #e4e9f1}.weig-catalog-map>button{display:block;margin:12px auto;padding:10px 24px;background:#2459e6;color:white;border-radius:30px}.weig-catalog-map>p{padding:8px 16px}.weig-catalog-map .leaflet-container{z-index:1;direction:ltr}.weig-catalog-map .leaflet-popup button{padding:10px;color:#2459e6;font-weight:700}
 .weig-map-pin{background:#2459e6;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px #0004}
+
+.discover-kashrut{margin:16px 0;padding:16px;border:1px solid #dbe3ef;border-radius:16px;background:#f5f8ff}.discover-kashrut p{margin:8px 0;font-size:1rem}.discover-kashrut small{font-size:.875rem;color:#475569}.discover-kashrut a{color:#2459e6;text-decoration:underline}
