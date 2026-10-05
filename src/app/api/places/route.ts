@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findCategory } from "@/modules/places/categories";
-import { GET as catalogSearch } from "./catalog/route";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +128,7 @@ async function discovery(key: string, locale: string, city: string, center: Cent
 }
 
 export async function GET(request: NextRequest) {
-  if(request.nextUrl.searchParams.get("source")==="weig")return catalogSearch(request);
+  if(request.nextUrl.searchParams.get("source")==="weig")return NextResponse.json({error:"CATALOG_DISABLED"},{status:410,headers:noStore});
   const params = request.nextUrl.searchParams;
   const category = findCategory(params.get("category") ?? "");
   const query = (params.get("query") ?? "").trim();
