@@ -10,6 +10,10 @@ function name(s:string,place:GoogleIdentity){
  for(const part of [place.city,place.street])if(part)n=n.replace(` ${normalize(part)} `,' ').replace(new RegExp(` ${normalize(part)}$`),'');
  return n.replace(/\b(?:restaurant|restaurants|cafe|café|kosher)\b/g,"").replace(/(?:מסעדת|מסעדה|מאפיית|מאפיה|כשר|כשרה|מהדרין|סניף|בית קפה)(?= |$)/g,"").replace(/\s+/g," ").trim();
 }
+function names(s:string,place:GoogleIdentity){
+ return [...new Set([s,...s.split(/\s*[|/]\s*/)].map(part=>name(part,place).replace(/^קפה (?!קפה(?: |$))/,'')).filter(Boolean))];
+}
+const sameBusiness=(a:string,b:string,place:GoogleIdentity)=>names(a,place).some(n=>names(b,place).includes(n));
 function phone(s:string,country:string){let n=s.replace(/\D/g,"");if(country==="IL")n=n.replace(/^972/,"0");if(country==="US"||country==="CA")n=n.replace(/^1(?=\d{10}$)/,"");return n.length>=8?n:"";}
 const contains=(text:string,part:string)=>!!part&&(` ${normalize(text)} `).includes(` ${normalize(part)} `);
 /** Never match by name alone or a shared chain phone. Require the actual branch address. */
@@ -17,7 +21,7 @@ export function matchingCandidates(place:GoogleIdentity,rows:OfficialCandidate[]
  if(!place.city||!place.country)return [];
  const matches=rows.filter(row=>{
   if(row.country!==place.country||city(row.city)!==city(place.city))return false;
-  const sameName=!!name(place.name,place)&&name(row.business_name,place)===name(place.name,place);
+  const sameName=sameBusiness(row.business_name,place.name,place);
   const samePhone=!!phone(place.phone,place.country)&&phone(row.business_phone??"",place.country)===phone(place.phone,place.country);
   const sameStreet=contains(row.address,place.street);
   const sameNumber=contains(row.address,place.number);
@@ -28,6 +32,6 @@ export function matchingCandidates(place:GoogleIdentity,rows:OfficialCandidate[]
  // Different identities can carry different certifiers for the same branch. A duplicate
  // listing with a conflicting house number or unrelated name is never selected by rank.
  const distinctNames=new Set(matches.map(r=>name(r.business_name,place)));
- if(distinctNames.size>1&&!matches.some(r=>name(r.business_name,place)===name(place.name,place)))return [];
+ if(distinctNames.size>1)return matches.filter(r=>sameBusiness(r.business_name,place.name,place));
  return matches;
 }

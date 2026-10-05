@@ -41,7 +41,7 @@ export async function GET(request:NextRequest){
   let candidates=await read("rpc/weig_find_kashrut_candidates",{p_city:p.city.replace("יוקנעם","יקנעם").replace("פתח תיקווה","פתח תקווה"),p_country:p.country}) as (OfficialCandidate&KashrutEvidence)[];
   let matches=matchingCandidates(p,candidates);
   // OU uses English street names; compare its records with Google's English identity.
-  if(candidates.some(c=>c.source_url.startsWith("https://oukosher.org/"))||candidates.some(c=>/[A-Za-z]{3}/.test(c.business_name))||p.country!=="IL"){
+  if(candidates.some(c=>c.source_url.startsWith("https://oukosher.org/"))||(!matches.length&&candidates.some(c=>/[A-Za-z]{3}/.test(c.business_name)))||p.country!=="IL"){
    const en=await google("en");
    if(p.country!=="IL")candidates=await read("rpc/weig_find_kashrut_candidates",{p_city:en.city,p_country:en.country});
    const alternate=matchingCandidates({...en,city:p.country==="IL"?p.city:en.city},candidates);

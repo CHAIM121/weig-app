@@ -87,6 +87,9 @@ sql="""do $import$ declare item jsonb; own_id uuid; begin
 update public.weig_kashrut_evidence set active_in_directory=false where source in ('beit_shemesh_council','petah_tikva_council','ou_kosher','netanya_council','yokneam_government');
 for item in select value from jsonb_array_elements($data$PAYLOAD$data$::jsonb) loop
  select place_id into own_id from public.weig_kashrut_evidence where source=item->>'source' and source_key=item->>'source_key';
+ if own_id is not null and exists(select 1 from public.weig_kashrut_evidence e where e.source=item->>'source' and e.source_key=item->>'source_key' and (e.business_name,e.address,e.city,e.country) is distinct from (item->>'business_name',item->>'address',item->>'city',item->>'country')) then
+  update public.weig_place_provider_links set match_status='pending',match_basis='Official branch identity changed; review required' where place_id=own_id and match_status='approved';
+ end if;
  if own_id is null then insert into public.weig_place_identities default values returning id into own_id; end if;
  insert into public.weig_kashrut_evidence(place_id,source,source_key,business_name,address,city,country,business_phone,certifier,level,food_type,source_label,evidence_type,source_url,fetched_at,active_in_directory)
  values(own_id,item->>'source',item->>'source_key',item->>'business_name',item->>'address',item->>'city',item->>'country',item->>'business_phone',item->>'certifier',item->>'level',item->>'food_type',item->>'source_label',item->>'evidence_type',item->>'source_url',(item->>'fetched_at')::timestamptz,true)
