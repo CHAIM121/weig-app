@@ -8,6 +8,7 @@ describe("official branch matching",()=>{
  it("links a unique official name, city, street and house number",()=>expect(matchingCandidates(place,[candidate])).toEqual([candidate]));
  it("matches a Google name with a city and kosher descriptor, using the exact branch address",()=>expect(matchingCandidates({...place,name:"אבולעפיה פתח תקווה | כשר"},[candidate])).toEqual([candidate]));
  it("recognizes an official branch suffix only when its exact address agrees",()=>expect(matchingCandidates(place,[{...candidate,business_name:"אבולעפיה / סניף הסיבים"}])).toHaveLength(1));
+ it("matches an official English street without Google’s street suffix",()=>expect(matchingCandidates({...place,street:"Jaffa St",city:"ירושלים",name:"Harveys Smokehouse",number:"33"},[{...candidate,city:"ירושלים",business_name:"Harvey’s Smokehouse",address:"Jaffa 33, Jerusalem, ISRAEL"}])).toHaveLength(1));
  it("does not borrow a chain's certification from another house number",()=>expect(matchingCandidates(place,[{...candidate,address:"29 הסיבים, פתח תקווה",business_phone:place.phone}])).toEqual([]));
  it("does not borrow certification from another city",()=>expect(matchingCandidates(place,[{...candidate,city:"ירושלים"}])).toEqual([]));
  it("does not match a name without a branch address",()=>expect(matchingCandidates({...place,street:"",number:""},[candidate])).toEqual([]));

@@ -23,7 +23,8 @@ export function matchingCandidates(place:GoogleIdentity,rows:OfficialCandidate[]
   if(row.country!==place.country||city(row.city)!==city(place.city))return false;
   const sameName=sameBusiness(row.business_name,place.name,place);
   const samePhone=!!phone(place.phone,place.country)&&phone(row.business_phone??"",place.country)===phone(place.phone,place.country);
-  const sameStreet=contains(row.address,place.street);
+  const street=normalize(place.street).replace(/ (?:st|street|rd|road|ave|avenue|blvd|boulevard)$/i,"");
+  const sameStreet=contains(row.address,street);
   const sameNumber=contains(row.address,place.number);
   // Exact street and house number also exclude another branch sharing a chain phone.
   const addressWithoutNumber=!/\d/.test(row.address);
