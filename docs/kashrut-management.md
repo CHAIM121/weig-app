@@ -51,6 +51,20 @@ No service-role credentials were added to the application.
 
 ## Remaining phases
 
+### Stored-data monitoring added on 6 October 2026
+
+The management area now has a **בדיקות המאגר** tab. Each source can capture an
+immutable baseline and subsequent stored-data versions, with before/after
+changes, active/inactive counts, age and expiration checks. Sensitive changes
+enqueue a source review if one is not already open. Full snapshots are private;
+the public schema exposes only manager-readable history and a manager-gated
+invoker RPC. No service-role key is used by the application.
+
+This checks the database, **not the external source**. It never updates evidence
+fetch times, renews certification or changes public provider links. Baselines
+have been recorded for the five existing sources. See
+`kashrut-check-2026-10-06.md` for verified counts, validation and remaining work.
+
 Agency relationships and scoped recognition, source adapters, ingestion runs,
 change/bancellation tracking, certificate processing and regional coverage are
 not implemented by this first registry milestone. Classification definitions are
