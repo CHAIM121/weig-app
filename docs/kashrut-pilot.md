@@ -1,41 +1,70 @@
-# Kashrut pilot — 5 October 2026
+# Official kashrut coverage — 6 October 2026
 
-225 unique official directory rows were imported from the Beit Shemesh religious
-council, https://www.rabanutbs.co.il/53/. This source does not publish certificate
-expiry dates or a directory update date. Records are official_listing evidence,
-not verified certificates. fetched_at is retrieval time, never certification time.
+The live evidence database contains 1,577 source records:
 
-Stable WEIG identities live in weig_place_identities, with external IDs in
-weig_place_provider_links. Links default to pending; only approved links and
-linked evidence can be read by public clients. Import and approval are privileged
-operations, with no public write route. Evidence preserves certifier, source
-label, food type, level, source URL, expiry and verification timestamps when known.
-Google names, addresses, photos and reviews are not persisted in this subsystem.
+| Official source | Records | Coverage |
+| --- | ---: | --- |
+| Beit Shemesh religious council | 225 | Beit Shemesh |
+| Petah Tikva religious council | 576 | Petah Tikva |
+| Netanya religious council | 605 | Netanya |
+| Ministry of Religious Services / data.gov.il | 63 | Yokneam Illit council |
+| OU public restaurant directory | 108 | Primarily US, also Israel and London |
 
-Initial manually reviewed links:
-- Burgers Bar, council name בורגר בר, דרך רבין 19: name, branch address and
-  identical business phone were cross-checked. Approved link identifies the
-  business, not the validity of its certification.
-- 110 בורגר בית שמש, קניון שער העיר: exact business name and shopping-center branch.
+Counts are source records, not unique Google businesses or verified certificates.
+Two Petah Tikva inspector-report categories are excluded. Records without a
+published address/locality are retained but cannot be automatically matched.
+Supervisor contact information is never used as a business phone or imported.
+No certificate expiry dates are published by these directory inputs. A source
+claim such as "בתוקף" stays a source label; it never becomes a verified certificate.
+Partial supervision scope (e.g. bakery department only) is displayed in the row.
 
-Same-name businesses with a different branch or address are not approved.
-Phone conflicts require further review. Do not propagate certification across a chain.
+## Identity and access
 
-Statuses: official directory listing; freshly verified certificate with expiry;
-expired certificate; explicit withdrawal; stale information after seven days;
-missing evidence; service outage. Neither a listing nor a name containing כשר is
-proof of a current certificate. Missing evidence does not mean non-kosher.
+Stable WEIG identities live in `weig_place_identities`; manually approved Google
+IDs remain in `weig_place_provider_links`. Imports reuse identities by source/key.
+Only approved links and their evidence are directly readable through table RLS.
+A restricted read-only RPC returns public official evidence candidates for one
+city/country from the five allowlisted sources. There are no public writes,
+service-role credentials, or automatic approval mutations in the web application.
 
-Refresh workflow (manual for this pilot):
-1. Fetch the official source to a local HTML file.
-2. Run python scripts/prepare-kashrut-council.py council.html import.sql.
-3. Review the reported source timestamp/row count and SQL; execute against WEIG App.
-4. Review candidate identities separately; approve only proven branch matches.
-Re-import preserves IDs for the same source name/address. Renames/relocations
-require review. Partial directories never delete evidence or revoke certification.
-There is no scheduled refresh or automatic matching in this pilot.
+For every unlinked Google place, the server fetches its canonical Google name,
+city, country, street, house number and phone. A match requires the same locality
+and branch address, plus normalized business name or exact business phone.
+When an official address has no house number, name, phone and street must all
+agree. A shared phone cannot decide between different business names. Name-only
+or chain-wide propagation is prohibited. An English Google identity supports
+English OU and council business names. Google display content is never persisted.
+Automatic matches are resolved on opening a place; source evidence stays durable
+in Supabase. Matching does not certify that a certificate is currently valid.
 
-Shirat Hayam portal returned Request Rejected from the execution environment;
-browser navigation also timed out. No national endpoint, national count or
-certificate import was verified. A future connector requires accessible documented
-access and confirmation of reuse terms. Never label this connector operational.
+## Presentation and status
+
+The place card shows one standard, uncolored kashrut row, with expandable details.
+Details preserve source labels, limitations, retrieval date and official links.
+Statuses distinguish directory listing, freshly verified dated certificate,
+expired certificate, explicit withdrawal, stale data after seven days, missing
+information and lookup outages. Missing does not mean non-kosher.
+
+## Import workflow
+
+`scripts/prepare-kashrut-sources.py` accepts complete source snapshots. It validates
+headers, row counts, stable identifiers, allowed URLs, unique Netanya pagination,
+and a complete OU/API response. It produces a single transactional, idempotent
+SQL import. Existing identities survive refreshes. Entries missing from a complete
+snapshot become inactive; old evidence is retained rather than called revoked.
+It must never be run with partial snapshots. Dependencies: Python + beautifulsoup4.
+Raw source snapshots and generated import SQL are temporary, not committed.
+
+Sources:
+- https://www.rabanutbs.co.il/53/
+- https://mpt.org.il/directory-kashrut/?num=200 (pages 1–3)
+- https://mdn.org.il/directory-kashrut/?num=200 (pages 1–4)
+- https://data.gov.il/api/3/action/datastore_search?resource_id=c54032cb-5306-4be9-a20d-a0be0ba49cc1&limit=1000
+- https://oukosher.org/wp-json/kosher-api/v1/restaurants/posts?page=1 (pages 1–11)
+
+Refreshes are manual; no background scheduler was enabled in this change.
+Shirat Hayam, Jerusalem, Tel Aviv and STAR-K rejected automated access or timed
+out. No national integration is operational, and no data was imported from those
+blocked sources. The schema/adapter workflow supports adding further official
+councils and certifiers without replacing Google discovery or building a separate
+kashrut application.

@@ -1,5 +1,5 @@
 export type KashrutEvidence = {
- id:string; certifier:string; level:string|null; food_type:string|null;
+ id:string; source_label?:string|null; certifier:string; level:string|null; food_type:string|null;
  evidence_type:"official_listing"|"certificate"|"revocation";
  source_url:string; certificate_url:string|null; valid_until:string|null;
  verified_at:string|null; fetched_at:string; source_updated_at:string|null;

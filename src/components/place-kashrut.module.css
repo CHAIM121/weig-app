@@ -1,0 +1,13 @@
+.row{border-top:1px solid #e5ece9;margin-top:18px;padding-top:15px;color:#40515a;font-size:14px;line-height:1.5}
+.summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer}
+.summary::-webkit-details-marker{display:none}
+.icon{color:#287b85;flex-shrink:0}
+.label{font-weight:700;white-space:nowrap}
+.value{flex:1}
+.chevron{flex-shrink:0;transition:transform .15s}
+.row[open] .chevron{transform:rotate(180deg)}
+.details{padding:5px 26px 0}
+.details p{margin:7px 0}
+.details small{color:#73817c}
+.details a{color:#287b85;text-underline-offset:3px}
+.notice{color:#9b3b42}
