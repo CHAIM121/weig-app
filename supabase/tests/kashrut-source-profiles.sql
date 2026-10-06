@@ -1,0 +1,43 @@
+begin;
+select set_config('request.jwt.claims',json_build_object('sub','00000000-0000-0000-0000-000000000001','role','authenticated')::text,true);
+set local role authenticated;
+do $$begin
+ if exists(select 1 from public.weig_kashrut_agency_relationships) then raise exception 'Non-manager can read relationships';end if;
+ begin insert into public.weig_kashrut_agency_relationships(title,from_agency_id,to_agency_id,relationship_type,scope) values('בדיקת גישה',gen_random_uuid(),gen_random_uuid(),'parent_of','בדיקה');raise exception 'Non-manager can insert relationships';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+select set_config('request.jwt.claims',json_build_object('sub',(select user_id from public.weig_kashrut_managers order by created_at limit 1),'role','authenticated')::text,true);
+set local role authenticated;
+do $$declare a uuid;b uuid;r uuid;s uuid;review_time timestamptz;test_time timestamptz;begin
+ insert into public.weig_kashrut_agencies(code,name_he,kind,status,official_url,notes) values('test_profile_a','גוף בדיקה א','independent','verified','https://example.org/a','זהות בדיקה בלבד') returning id into a;
+ insert into public.weig_kashrut_agencies(code,name_he,kind,status,official_url,notes) values('test_profile_b','גוף בדיקה ב','independent','verified','https://example.org/b','זהות בדיקה בלבד') returning id into b;
+ insert into public.weig_kashrut_agency_relationships(title,from_agency_id,to_agency_id,relationship_type,scope) values('המלצה מוגבלת',a,b,'recommends','בשר בלבד') returning id into r;
+ update public.weig_kashrut_agency_relationships set notes='ממתין לראיה' where id=r;
+ if (select count(*) from public.weig_kashrut_review_tasks where relationship_id=r and status='open')<>1 then raise exception 'Review missing or duplicated';end if;
+ if (select count(*) from public.weig_kashrut_registry_audit where record_id=r and actor_id=auth.uid())<>2 then raise exception 'Relationship audit missing';end if;
+ begin update public.weig_kashrut_agency_relationships set status='verified' where id=r;raise exception 'Verified without evidence';exception when check_violation then null;end;
+ begin update public.weig_kashrut_agency_relationships set to_agency_id=a where id=r;raise exception 'Self relation allowed';exception when check_violation then null;end;
+ begin update public.weig_kashrut_agency_relationships set valid_from='2026-10-06',valid_until='2026-10-05' where id=r;raise exception 'Reverse date range allowed';exception when check_violation then null;end;
+ update public.weig_kashrut_agency_relationships set status='verified',evidence_url='https://example.org/policy',notes='ראיה זמנית לבדיקה' where id=r;
+ update public.weig_kashrut_review_tasks set status='resolved',decision='תחום הקשר וראייתו נבדקו' where relationship_id=r;
+ if not exists(select 1 from public.weig_kashrut_review_tasks where relationship_id=r and reviewed_by=auth.uid()) then raise exception 'Review attribution missing';end if;
+ insert into public.weig_kashrut_registry_sources(code,name_he,agency_id,url,format,status,notes,content_kind,access_status,terms_url,access_notes,stable_key,refresh_frequency,adapter_version,adapter_test_status,adapter_test_notes)
+ values('test_source_profile','מקור בדיקה',a,'https://example.org/list','api','verified','זהות בדיקה', 'establishments','allowed','https://example.org/terms','ראיית גישה לבדיקה','record_id','weekly','v1','passed','ראיית בדיקות זמנית') returning id into s;
+ if not exists(select 1 from public.weig_kashrut_registry_sources where id=s and access_reviewed_by=auth.uid() and adapter_tested_at is not null) then raise exception 'Profile evidence not stamped';end if;
+ select access_reviewed_at,adapter_tested_at into review_time,test_time from public.weig_kashrut_registry_sources where id=s;
+ update public.weig_kashrut_registry_sources set access_reviewed_at='2099-01-01',adapter_tested_at='2099-01-01',publisher='נערך שם המפרסם' where id=s;
+ if not exists(select 1 from public.weig_kashrut_registry_sources where id=s and access_reviewed_at=review_time and adapter_tested_at=test_time) then raise exception 'Unrelated metadata edit changed or forged review timestamps';end if;
+ update public.weig_kashrut_registry_sources set url='https://example.org/changed' where id=s;
+ if not exists(select 1 from public.weig_kashrut_registry_sources where id=s and access_status='not_checked' and access_reviewed_by is null and adapter_test_status='untested' and adapter_tested_at is null) then raise exception 'URL change retained stale approval';end if;
+ begin update public.weig_kashrut_registry_sources set access_status='allowed' where id=s;raise exception 'Permission without evidence allowed';exception when check_violation then null;end;
+ update public.weig_kashrut_registry_sources set adapter_version='v2',stable_key='new_id' where id=s;
+ update public.weig_kashrut_registry_sources set adapter_test_status='passed',adapter_test_notes='בדיקות מתועדות לגרסה החדשה' where id=s;
+ update public.weig_kashrut_registry_sources set stable_key='changed_id' where id=s;
+ if not exists(select 1 from public.weig_kashrut_registry_sources where id=s and adapter_test_status='untested') then raise exception 'Parser key change retained stale tests';end if;
+end $$;
+reset role;
+set local role anon;
+do $$begin begin perform count(*) from public.weig_kashrut_agency_relationships;raise exception 'Anonymous relationship access allowed';exception when insufficient_privilege then null;end;end $$;
+reset role;
+rollback;
+select 'passed: relationship RLS, scope constraints, audit, reviews, profile attribution, approval invalidation' as result;

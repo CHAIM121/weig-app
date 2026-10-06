@@ -1,0 +1,16 @@
+import {describe,expect,it} from "vitest";
+import {validateRecord,type RecordRow} from "@/modules/kashrut-admin/registry";
+import {sourceReadiness} from "@/modules/kashrut-admin/source-readiness";
+const a="11111111-1111-1111-1111-111111111111",b="22222222-2222-2222-2222-222222222222";
+const relation={title:"קשר בבדיקה",from_agency_id:a,to_agency_id:b,relationship_type:"recommends",scope:"מחלקת בשר בלבד",evidence_url:"",valid_from:"",valid_until:"",status:"candidate",notes:""};
+const source={code:"sample",name_he:"מקור לדוגמה",agency_id:a,publisher:"",url:"https://example.org/list",format:"html",status:"verified",connection_state:"planned",coverage:"עיר אחת",completeness:"unknown",notes:"זהות המקור אומתה",content_kind:"establishments",access_status:"not_checked",access_notes:"",stable_key:"",refresh_frequency:"unspecified",adapter_version:"",adapter_test_status:"untested",adapter_test_notes:""};
+describe("scoped relationships",()=>{
+ it("rejects self-relations and unscoped claims",()=>{expect(()=>validateRecord("relationships",{...relation,to_agency_id:a})).toThrow();expect(()=>validateRecord("relationships",{...relation,scope:""})).toThrow()});
+ it("requires evidence for verification and validates published dates",()=>{expect(()=>validateRecord("relationships",{...relation,status:"verified"})).toThrow();expect(()=>validateRecord("relationships",{...relation,valid_from:"2026-02-30"})).toThrow();expect(()=>validateRecord("relationships",{...relation,valid_from:"2026-10-06",valid_until:"2026-10-05"})).toThrow();expect(validateRecord("relationships",{...relation,status:"verified",evidence_url:"https://example.org/policy",notes:"המלצה מצומצמת שפורסמה"}).scope).toBe("מחלקת בשר בלבד")});
+ it("supports attributable review of one relationship",()=>{const record=validateRecord("reviews",{title:"אימות קשר",subject_type:"relationship",relationship_id:a,agency_id:b,status:"resolved",reason:"",decision:"ראיית הקשר נבדקה"});expect(record.relationship_id).toBe(a);expect(record.agency_id).toBeNull()});
+});
+describe("source planning gate",()=>{
+ it("does not equate official status with permitted collection",()=>{const result=sourceReadiness({...source,id:a,version:1},{id:a,version:1,status:"verified"});expect(result.ready).toBe(false);expect(result.blockers).toContain("חסרה הרשאה מתועדת לאיסוף")});
+ it("requires evidence and version before permission or test completion",()=>{expect(()=>validateRecord("sources",{...source,access_status:"allowed"})).toThrow();expect(()=>validateRecord("sources",{...source,adapter_test_status:"passed"})).toThrow();expect(()=>validateRecord("sources",{...source,terms_url:"https://user:password@example.org/"})).toThrow()});
+ it("requires all gates and reports paused sources even if dossiers are complete",()=>{const complete:RecordRow={...source,id:a,version:1,access_status:"allowed",terms_url:"https://example.org/terms",access_notes:"הרשאת API שפורסמה",stable_key:"record_id",refresh_frequency:"weekly",adapter_version:"v1",adapter_test_status:"passed",adapter_test_notes:"בדיקות מזהים ותחומים עברו"};expect(sourceReadiness(complete,{id:a,version:1,status:"verified"}).ready).toBe(true);expect(sourceReadiness({...complete,connection_state:"paused"},{id:a,version:1,status:"verified"}).ready).toBe(false);expect(sourceReadiness(complete).ready).toBe(false)});
+});
