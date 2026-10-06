@@ -1,6 +1,7 @@
 # Official kashrut coverage — 6 October 2026
 
-The live evidence database contains 1,577 source records:
+The live evidence database contains 1,661 source records: 1,577 active and 84
+inactive. The table below counts active records:
 
 | Official source | Records | Coverage |
 | --- | ---: | --- |

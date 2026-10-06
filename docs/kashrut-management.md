@@ -10,10 +10,10 @@ phase. The existing business evidence and public place-card lookup are unchanged
   and candidates clearly kept in a separate verification state.
 - 30 classification definitions spanning levels, food, equipment, milk, meat,
   baking, cooking, Passover, produce, supervision scope and other attributes.
-- Five registered sources used by the previous manual imports. Publisher and
+- Eight registered sources: five previous manual imports, two planned connections and one blocked source. Publisher and
   agency are separate fields. All are marked `manual_import`, not active scanners.
 - A review queue automatically created when an agency/source is added or changed
-  to `candidate` or `needs_review`. Initially 12 open reviews.
+  to `candidate` or `needs_review`. Initially 12 open reviews; now 9 after verifying COR, MK and Kosher Australia.
 - Create and edit forms, text search, state/category filters, inactive states,
   decision notes and a history of the last 50 changes.
 - Verified identities/sources require documented evidence and an official URL.
@@ -65,9 +65,10 @@ fetch times, renews certification or changes public provider links. Baselines
 have been recorded for the five existing sources. See
 `kashrut-check-2026-10-06.md` for verified counts, validation and remaining work.
 
-Agency relationships and scoped recognition, source adapters, ingestion runs,
-change/bancellation tracking, certificate processing and regional coverage are
-not implemented by this first registry milestone. Classification definitions are
+Scoped agency relationships and source dossiers were added subsequently; see
+`kashrut-source-profiles-2026-10-06.md` and `KASHRUT_CODEX_HANDOFF.md`.
+Source adapters, ingestion runs, external refresh scheduling, certificate
+processing and regional coverage remain to be implemented. Classification definitions are
 not themselves business-level claims. Seed country lists are partial known
 activity, not exhaustive operating footprints. The management UI currently uses
 Hebrew labels, including when its route is opened under the English locale.
