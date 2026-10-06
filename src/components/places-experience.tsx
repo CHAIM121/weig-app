@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, Share2, SlidersHorizontal, Sparkles, X, Clock3, Phone, Star, Globe2, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Compass, Heart, Images, List, Map as MapIcon, MapPin, Navigation, Search, Share2, Mic, Sparkles, X, Clock3, Phone, Star, Globe2, MessageCircle } from "lucide-react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
@@ -15,6 +15,35 @@ import { PlaceFeedbackSummary, RatingSheet, VisitPrompt, usePlaceFeedback, type 
 
 type Place = { id:string; image:string; he:string; en:string; kindHe:string; kindEn:string; areaHe:string; areaEn:string; descriptionHe:string; descriptionEn:string; maps:string; credit:string; type:"heritage"|"views"; theme?:DiscoveryTheme; location?:Coordinates|null; mapsUrl?:string; photoCredits?:{displayName?:string;uri?:string}[]; attributions?:{provider?:string;providerUri?:string}[] };
 type GooglePlace = {id:string;name:string;address:string;mapsUrl:string;photoName:string|null;location?:Coordinates|null;theme?:DiscoveryTheme;photoCredits:Place["photoCredits"];attributions:Place["attributions"]};
+type VoiceRecognition = {
+ lang:string; continuous:boolean; interimResults:boolean;
+ onstart:(()=>void)|null; onend:(()=>void)|null;
+ onerror:((event:{error:string})=>void)|null;
+ onresult:((event:{results:ArrayLike<{isFinal:boolean;0:{transcript:string}}>})=>void)|null;
+ start:()=>void; stop:()=>void; abort:()=>void;
+};
+function VoiceSearch({he,onSearch}:{he:boolean;onSearch:(query:string)=>void}){
+ const recognition=useRef<VoiceRecognition|null>(null);
+ const [active,setActive]=useState(false),[message,setMessage]=useState("");
+ const label=(h:string,e:string)=>he?h:e;
+ useEffect(()=>()=>{const current=recognition.current;recognition.current=null;if(current){current.onstart=null;current.onend=null;current.onerror=null;current.onresult=null;current.abort()}},[he]);
+ const toggle=()=>{
+  if(recognition.current){recognition.current.stop();return}
+  const browser=window as Window & {SpeechRecognition?:new()=>VoiceRecognition;webkitSpeechRecognition?:new()=>VoiceRecognition};
+  const Recognition=browser.SpeechRecognition??browser.webkitSpeechRecognition;
+  if(!Recognition){setMessage(label("חיפוש קולי אינו זמין בדפדפן הזה. אפשר להקליד את החיפוש.","Voice search is unavailable in this browser. You can type your search."));return}
+  const current=new Recognition();recognition.current=current;
+  current.lang=he?"he-IL":"en-US";current.continuous=false;current.interimResults=false;
+  let received=false,failed=false;
+  setActive(true);setMessage(label("מאפשרים גישה למיקרופון…","Waiting for microphone access…"));
+  current.onstart=()=>setMessage(label("מקשיב… איזה מקום תרצו למצוא?","Listening… What place would you like to find?"));
+  current.onresult=event=>{const text=Array.from(event.results).filter(result=>result.isFinal).map(result=>result[0].transcript).join(" ").trim();if(text){received=true;onSearch(text.slice(0,150));setMessage(label(`מחפש: ${text}`,`Searching: ${text}`))}};
+  current.onerror=event=>{failed=true;setMessage(event.error==="not-allowed"||event.error==="service-not-allowed"?label("יש לאפשר גישה למיקרופון בהגדרות הדפדפן ולנסות שוב.","Allow microphone access in your browser settings and try again."):event.error==="no-speech"?label("לא שמעתי דיבור. לחצו על המיקרופון ונסו שוב.","No speech detected. Tap the microphone and try again."):label("החיפוש הקולי לא הצליח. אפשר לנסות שוב או להקליד.","Voice search failed. Try again or type your search."))};
+  current.onend=()=>{if(recognition.current===current)recognition.current=null;setActive(false);if(!received&&!failed)setMessage(label("לא שמעתי דיבור. לחצו על המיקרופון ונסו שוב.","No speech detected. Tap the microphone and try again."))};
+  try{current.start()}catch{recognition.current=null;setActive(false);setMessage(label("לא הצלחנו להפעיל את המיקרופון. נסו שוב.","Couldn't start the microphone. Please try again."))}
+ };
+ return <span style={{position:"relative",display:"flex",flexShrink:0}}><button type="button" className="discover-search-filter" aria-label={active?label("עצירת ההאזנה","Stop listening"):label("חיפוש קולי","Voice search")} aria-pressed={active} onClick={toggle} style={active?{background:"#dc2626",color:"white",boxShadow:"0 0 0 4px #dc262626"}:undefined}><Mic size={21}/></button>{message&&<span role="status" aria-live="polite" style={{position:"absolute",top:"100%",insetInlineEnd:0,width:"min(320px, 80vw)",marginTop:6,padding:"10px 14px",borderRadius:14,background:"white",color:"#18251f",boxShadow:"0 4px 16px #0002",fontSize:14,zIndex:20}}>{message}<button type="button" onClick={()=>setMessage("")} aria-label={label("סגירת הודעה","Dismiss message")} style={{display:"inline-grid",marginInlineStart:8}}><X size={16}/></button></span>}</span>;
+}
 const toPlace=(place:GooglePlace):Place=>({id:place.id,image:place.photoName?`/api/places/photo?name=${encodeURIComponent(place.photoName)}`:"/images/place-placeholder.svg",he:place.name,en:place.name,kindHe:"",kindEn:"",areaHe:place.address,areaEn:place.address,descriptionHe:"",descriptionEn:"",maps:place.name,credit:place.photoCredits?.map(item=>item.displayName).filter(Boolean).join(" · ")||"",type:"views",theme:place.theme,location:place.location,mapsUrl:place.mapsUrl,photoCredits:place.photoCredits,attributions:place.attributions});
 async function fetchPlaces(url:string, signal:AbortSignal){
  for(let attempt=0;attempt<2;attempt++){
@@ -127,7 +156,7 @@ export function PlacesExperience({t}:{t:Dictionary}) {
  return <div className="discover-app">
   <div className="discover-topline"><div><span className="discover-eyebrow">{label("מגלים עם WEIG","WEIG DISCOVER")}</span><h1>{label("לגלות", "Discover")}</h1></div><button className="discover-city" onClick={()=>setLocationNote(v=>!v)}><MapPin size={16}/>{preview?label("בודפשט", "Budapest"):manualCity?city:location?label("בסביבתי","Near me"):label("בחרו אזור","Choose area")}<ChevronDown size={15}/></button></div>
   <div className="discover-toolbar">
-  <div className="discover-search"><Search size={21}/><input value={query} onChange={e=>setQuery(e.target.value)} aria-label={t.places.search} placeholder={label("איזה מקום מתחשק לך לגלות?","What would you like to discover?")}/>{query&&<button aria-label={label("נקה חיפוש","Clear search")} onClick={()=>setQuery("")}><X size={18}/></button>}<button className="discover-search-filter" aria-label={label("הצג סינון","Show filters")} onClick={()=>setCategory(category==="all"?"restaurants":"all")}><SlidersHorizontal size={19}/></button></div>
+  <div className="discover-search"><Search size={21}/><input value={query} onChange={e=>setQuery(e.target.value)} aria-label={t.places.search} placeholder={label("איזה מקום מתחשק לך לגלות?","What would you like to discover?")}/>{query&&<button aria-label={label("נקה חיפוש","Clear search")} onClick={()=>setQuery("")}><X size={18}/></button>}<VoiceSearch he={he} onSearch={setQuery}/></div>
   {locationNote&&<div className="discover-context">{!location&&!manualCity&&<p>{label("לא הצלחנו לזהות מיקום כרגע. אפשר לנסות שוב או לכתוב עיר.","We couldn't determine your location. Try again or enter a city.")} <button type="button" onClick={()=>{setLocationReady(false);setLocationRetry(value=>value+1)}}>{label("לנסות מיקום שוב","Retry location")}</button></p>}<label>{label("חיפוש באזור בישראל", "Search area in Israel")} <input aria-label={label("עיר בישראל", "City in Israel")} value={city} onChange={event=>{setCity(event.target.value);setManualCity(true)}} maxLength={60}/></label>{manualCity&&<button type="button" onClick={()=>{setManualCity(false);setCity("");setLocationReady(false);setLocationRetry(value=>value+1)}}>{label("חזרה למיקום שלי","Use my location")}</button>}{preview&&<p>{label("מוצגת כרגע תצוגת הדוגמה המקורית מבודפשט עד לחיבור Google Places.","The original Budapest preview is shown until Google Places is connected.")}</p>}</div>}
   <div className="discover-chips" aria-label={t.places.categories}><button aria-pressed={category==="all"} onClick={()=>{setCategory("all");setQuery("")}}>{label("בשבילי","For you")}</button>{placeCategories.map(item=><button key={item.id} aria-pressed={category===item.id} onClick={()=>{setCategory(item.id);setQuery("")}}>{he?item.he:item.en}</button>)}</div>
   <div className={view==="feed"?"discover-editorial feed-mode":"discover-editorial"}><div><span className="discover-overline"><span className="discover-pulse"/>{preview?label("בודפשט, מקרוב", "BUDAPEST, UP CLOSE"):label("ישראל, מקרוב", "ISRAEL, UP CLOSE")}</span><h2>{query?label("תוצאות החיפוש", "Search results"):activeCategory?(he?activeCategory.he:activeCategory.en):label("לאן היום?", "Where to today?")}</h2></div><div className="discover-view-actions"><div className="discover-mode-switch" aria-label={label("צורת תצוגה","View mode")}><button aria-label={label("פיד","Feed")} aria-pressed={view==="feed"} onClick={()=>setView("feed")}><Images size={17}/>{label("פיד","Feed")}</button><button aria-label={label("רשימה","List")} aria-pressed={view==="list"} onClick={()=>setView("list")}><List size={17}/>{label("רשימה","List")}</button><button aria-label={label("מפה","Map")} aria-pressed={view==="map"} onClick={()=>setView("map")}><MapIcon size={17}/>{label("מפה","Map")}</button></div><button className="discover-saved-toggle" aria-pressed={showSaved} onClick={()=>{setShowSaved(v=>!v);setView("feed")}}><Bookmark size={17}/>{label("שמורים", "Saved")}{saved.length>0&&<span>{saved.length}</span>}</button></div></div>
