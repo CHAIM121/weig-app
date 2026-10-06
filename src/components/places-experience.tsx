@@ -24,25 +24,89 @@ type VoiceRecognition = {
 };
 function VoiceSearch({he,onSearch}:{he:boolean;onSearch:(query:string)=>void}){
  const recognition=useRef<VoiceRecognition|null>(null);
- const [active,setActive]=useState(false),[message,setMessage]=useState("");
+ const trigger=useRef<HTMLButtonElement|null>(null),dialog=useRef<HTMLElement|null>(null);
+ const [open,setOpen]=useState(false),[active,setActive]=useState(false),[message,setMessage]=useState(""),[transcript,setTranscript]=useState(""),[unsupported,setUnsupported]=useState(false);
  const label=(h:string,e:string)=>he?h:e;
- useEffect(()=>()=>{const current=recognition.current;recognition.current=null;if(current){current.onstart=null;current.onend=null;current.onerror=null;current.onresult=null;current.abort()}},[he]);
- const toggle=()=>{
+ const release=useCallback(()=>{const current=recognition.current;recognition.current=null;if(current){current.onstart=null;current.onend=null;current.onerror=null;current.onresult=null;current.abort()}},[]);
+ const close=useCallback(()=>{release();setActive(false);setOpen(false)},[release]);
+ useEffect(()=>()=>release(),[release,he]);
+ useEffect(()=>{
+  if(!open)return;
+  const previous=document.body.style.overflow;document.body.style.overflow="hidden";
+  dialog.current?.focus();
+  const keydown=(event:KeyboardEvent)=>{
+   if(event.key==="Escape"){event.preventDefault();close()}
+   if(event.key!=="Tab")return;
+   const buttons=dialog.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)");
+   if(!buttons?.length)return;
+   const first=buttons[0],last=buttons[buttons.length-1];
+   if(event.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){event.preventDefault();last.focus()}
+   else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===dialog.current)){event.preventDefault();first.focus()}
+  };
+  document.addEventListener("keydown",keydown);
+  return()=>{document.body.style.overflow=previous;document.removeEventListener("keydown",keydown);if(document.activeElement===document.body||dialog.current?.contains(document.activeElement))trigger.current?.focus()};
+ },[open,close]);
+ const start=()=>{
   if(recognition.current){recognition.current.stop();return}
   const browser=window as Window & {SpeechRecognition?:new()=>VoiceRecognition;webkitSpeechRecognition?:new()=>VoiceRecognition};
   const Recognition=browser.SpeechRecognition??browser.webkitSpeechRecognition;
-  if(!Recognition){setMessage(label("חיפוש קולי אינו זמין בדפדפן הזה. אפשר להקליד את החיפוש.","Voice search is unavailable in this browser. You can type your search."));return}
+  (document.activeElement as HTMLElement|null)?.blur();
+  setOpen(true);setTranscript("");setUnsupported(!Recognition);
+  if(!Recognition){setActive(false);setMessage(label("הדפדפן הזה לא תומך בחיפוש קולי. אפשר להמשיך בהקלדה.","This browser doesn't support voice search. You can type instead."));return}
   const current=new Recognition();recognition.current=current;
-  current.lang=he?"he-IL":"en-US";current.continuous=false;current.interimResults=false;
-  let received=false,failed=false;
-  setActive(true);setMessage(label("מאפשרים גישה למיקרופון…","Waiting for microphone access…"));
-  current.onstart=()=>setMessage(label("מקשיב… איזה מקום תרצו למצוא?","Listening… What place would you like to find?"));
-  current.onresult=event=>{const text=Array.from(event.results).filter(result=>result.isFinal).map(result=>result[0].transcript).join(" ").trim();if(text){received=true;onSearch(text.slice(0,150));setMessage(label(`מחפש: ${text}`,`Searching: ${text}`))}};
-  current.onerror=event=>{failed=true;setMessage(event.error==="not-allowed"||event.error==="service-not-allowed"?label("יש לאפשר גישה למיקרופון בהגדרות הדפדפן ולנסות שוב.","Allow microphone access in your browser settings and try again."):event.error==="no-speech"?label("לא שמעתי דיבור. לחצו על המיקרופון ונסו שוב.","No speech detected. Tap the microphone and try again."):label("החיפוש הקולי לא הצליח. אפשר לנסות שוב או להקליד.","Voice search failed. Try again or type your search."))};
-  current.onend=()=>{if(recognition.current===current)recognition.current=null;setActive(false);if(!received&&!failed)setMessage(label("לא שמעתי דיבור. לחצו על המיקרופון ונסו שוב.","No speech detected. Tap the microphone and try again."))};
-  try{current.start()}catch{recognition.current=null;setActive(false);setMessage(label("לא הצלחנו להפעיל את המיקרופון. נסו שוב.","Couldn't start the microphone. Please try again."))}
+  current.lang=he?"he-IL":"en-US";current.continuous=false;current.interimResults=true;
+  setActive(true);setMessage(label("מאשרים גישה למיקרופון…","Allow microphone access…"));
+  current.onstart=()=>{if(recognition.current===current)setMessage(label("בהאזנה…","Listening…"))};
+  current.onresult=event=>{
+   if(recognition.current!==current)return;
+   const results=Array.from(event.results);
+   setTranscript(results.map(result=>result[0].transcript).join(" ").trim());
+   const text=results.filter(result=>result.isFinal).map(result=>result[0].transcript).join(" ").trim();
+   if(text){onSearch(text.slice(0,150));close()}
+  };
+  current.onerror=event=>{
+   if(recognition.current!==current)return;
+   release();setActive(false);
+   setMessage(event.error==="not-allowed"||event.error==="service-not-allowed"?label("המיקרופון חסום. אפשרו גישה למיקרופון בהגדרות הדפדפן ונסו שוב.","Microphone access is blocked. Allow access in your browser settings and try again."):event.error==="no-speech"?label("לא שמעתי. ננסה שוב?","I didn't hear you. Try again?"):label("לא הצלחתי לקלוט את הדיבור. ננסה שוב?","Couldn't recognize your speech. Try again?"));
+  };
+  current.onend=()=>{if(recognition.current!==current)return;recognition.current=null;setActive(false);setMessage(label("לא שמעתי. ננסה שוב?","I didn't hear you. Try again?"))};
+  try{current.start()}catch{release();setActive(false);setMessage(label("לא הצלחתי להפעיל את המיקרופון. ננסה שוב?","Couldn't start the microphone. Try again?"))}
  };
- return <span style={{position:"relative",display:"flex",flexShrink:0}}><button type="button" className="discover-search-filter" aria-label={active?label("עצירת ההאזנה","Stop listening"):label("חיפוש קולי","Voice search")} aria-pressed={active} onClick={toggle} style={active?{background:"#dc2626",color:"white",boxShadow:"0 0 0 4px #dc262626"}:undefined}><Mic size={21}/></button>{message&&<span role="status" aria-live="polite" style={{position:"absolute",top:"100%",insetInlineEnd:0,width:"min(320px, 80vw)",marginTop:6,padding:"10px 14px",borderRadius:14,background:"white",color:"#18251f",boxShadow:"0 4px 16px #0002",fontSize:14,zIndex:20}}>{message}<button type="button" onClick={()=>setMessage("")} aria-label={label("סגירת הודעה","Dismiss message")} style={{display:"inline-grid",marginInlineStart:8}}><X size={16}/></button></span>}</span>;
+ const typeInstead=()=>{close();trigger.current?.closest(".discover-search")?.querySelector("input")?.focus()};
+ return <><button ref={trigger} type="button" className="discover-search-filter" aria-label={label("חיפוש קולי","Voice search")} aria-haspopup="dialog" onClick={start}><Mic size={21}/></button>{open&&createPortal(<div className="weig-voice-overlay" dir={he?"rtl":"ltr"}>
+  <style>{`
+   .weig-voice-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;color:#17243a;font-family:inherit}
+   .weig-voice-backdrop{position:absolute;inset:0;border:0;background:#10182899;backdrop-filter:blur(3px);width:100%;height:100%;cursor:pointer}
+   .weig-voice-sheet{position:relative;background:#fff;width:100%;max-width:520px;max-height:90dvh;overflow:auto;border-radius:28px 28px 0 0;padding:14px 24px calc(24px + env(safe-area-inset-bottom));text-align:center;box-shadow:0 -12px 50px #0002;animation:weig-voice-enter .2s ease-out;outline:none}
+   .weig-voice-handle{width:40px;height:4px;background:#e1e5eb;border-radius:9px;margin:0 auto 12px}
+   .weig-voice-close{position:absolute;top:20px;inset-inline-end:16px;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:#f3f5f8;color:#536074;cursor:pointer}
+   .weig-voice-title{font-size:16px;font-weight:700;color:#667085;margin:14px 44px 30px}
+   .weig-voice-mic{width:88px;height:88px;border-radius:50%;background:#eff3ff;color:#2856e8;display:grid;place-items:center;margin:0 auto 30px;position:relative}
+   .weig-voice-mic.is-listening{background:#ff686b;color:#9c272d}
+   .weig-voice-mic.is-listening:before{content:"";position:absolute;inset:-10px;border:2px solid #ff686b55;border-radius:50%;animation:weig-voice-pulse 1.6s ease-in-out infinite}
+   .weig-voice-status{font-size:24px;line-height:1.45;font-weight:750;margin:0 auto 10px;max-width:420px}
+   .weig-voice-transcript{font-size:20px;line-height:1.6;min-height:64px;overflow-wrap:anywhere;margin:0 0 14px;color:#354661}
+   .weig-voice-language{font-size:14px;color:#738095;margin:8px 0 24px}
+   .weig-voice-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+   .weig-voice-actions button{min-height:44px;padding:10px 22px;font:inherit;font-size:16px;font-weight:700;border-radius:99px;border:1px solid #e0e5ef;background:#fff;color:#40506a;cursor:pointer}
+   .weig-voice-actions .weig-voice-primary{background:#2856e8;color:white;border-color:#2856e8}
+   .weig-voice-sheet button:focus-visible{outline:3px solid #81a5ff;outline-offset:3px}
+   @keyframes weig-voice-enter{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+   @keyframes weig-voice-pulse{0%,100%{transform:scale(1);opacity:.65}50%{transform:scale(1.12);opacity:1}}
+   @media(min-width:700px){.weig-voice-overlay{align-items:center;padding:24px}.weig-voice-sheet{border-radius:28px;padding-bottom:28px}}
+   @media(prefers-reduced-motion:reduce){.weig-voice-sheet,.weig-voice-mic.is-listening:before{animation:none}}
+  `}</style>
+  <button type="button" className="weig-voice-backdrop" tabIndex={-1} onClick={close} aria-label={label("ביטול חיפוש קולי","Cancel voice search")}/>
+  <section ref={dialog} tabIndex={-1} className="weig-voice-sheet" role="dialog" aria-modal="true" aria-label={label("חיפוש קולי","Voice search")}>
+   <div className="weig-voice-handle"/><button type="button" className="weig-voice-close" onClick={close} aria-label={label("סגירה","Close")}><X size={22}/></button>
+   <p className="weig-voice-title">{label("איזה מקום תרצו לגלות?","What would you like to discover?")}</p>
+   <div className={`weig-voice-mic${active?" is-listening":""}`}><Mic size={38}/></div>
+   <p className="weig-voice-status" role="status" aria-live="polite">{message}</p>
+   <p className="weig-voice-transcript">{transcript||(active?label("אמרו שם מקום או מה מתחשק לכם","Say a place name or what you'd like to find"):"")}</p>
+   <p className="weig-voice-language">{label("עברית (ישראל)","English (United States)")}</p>
+   <div className="weig-voice-actions">{active?<button type="button" onClick={close}>{label("ביטול","Cancel")}</button>:!unsupported?<button type="button" className="weig-voice-primary" onClick={start}>{label("לנסות שוב","Try again")}</button>:null}<button type="button" onClick={typeInstead}>{label("להקליד במקום","Type instead")}</button></div>
+  </section>
+ </div>,document.body)}</>;
 }
 const toPlace=(place:GooglePlace):Place=>({id:place.id,image:place.photoName?`/api/places/photo?name=${encodeURIComponent(place.photoName)}`:"/images/place-placeholder.svg",he:place.name,en:place.name,kindHe:"",kindEn:"",areaHe:place.address,areaEn:place.address,descriptionHe:"",descriptionEn:"",maps:place.name,credit:place.photoCredits?.map(item=>item.displayName).filter(Boolean).join(" · ")||"",type:"views",theme:place.theme,location:place.location,mapsUrl:place.mapsUrl,photoCredits:place.photoCredits,attributions:place.attributions});
 async function fetchPlaces(url:string, signal:AbortSignal){
