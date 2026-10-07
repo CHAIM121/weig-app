@@ -8,6 +8,8 @@ const places = [
 ];
 const markerClicks: (() => void)[] = [];
 const panTo = vi.fn();
+const mapOptions = vi.fn();
+const fitBounds = vi.fn();
 const props = { places, he: true, center: null, city: "נתניה", onSelect: vi.fn() };
 beforeEach(() => {
   markerClicks.length = 0;
@@ -33,6 +35,11 @@ describe("discovery map", () => {
     vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
     render(<GooglePlacesMap {...props} places={[{ ...places[0], rating: 4.4, credit: "Photo author" }]} center={{ lat: 32.3, lng: 34.8 }} travel={() => "2 ק״מ · 5 דק׳ בנסיעה"}/>);
     expect(screen.getByText("4.4")).toBeInTheDocument();
+    expect(screen.getByText("לגלות את המקום")).toBeInTheDocument();
+    expect(screen.getByText("4.4").closest(".weig-map-card-head")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "מירכוז למיקום שלי" })).toHaveClass("weig-map-recenter");
+    expect(screen.getByTitle("מפת Google Maps").closest(".weig-map-canvas")).not.toBeNull();
+    expect(screen.getByText("לגלות את המקום").closest(".weig-map-canvas")).toBeNull();
     expect(screen.getByText("2 ק״מ · 5 דק׳ בנסיעה")).toBeInTheDocument();
     expect(screen.queryByText("1 מקומות")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "מירכוז למיקום שלי" }));
@@ -54,12 +61,14 @@ describe("discovery map", () => {
     vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "test-public-map-key");
     const remove = vi.fn();
     vi.stubGlobal("google", { maps: {
-      Map: class { panTo = panTo; fitBounds() {} setZoom() {} },
+      Map: class { constructor(_element: HTMLElement, options: unknown) { mapOptions(options); } panTo = panTo; fitBounds = fitBounds; setZoom() {} },
       Marker: class { setMap = remove; setIcon() {} setZIndex() {} addListener(_name: string, click: () => void) { markerClicks.push(click); } },
       LatLngBounds: class { extend() {} }, SymbolPath: { CIRCLE: 0 }, event: { trigger() {}, clearInstanceListeners() {} },
     } });
     const { unmount } = render(<GooglePlacesMap {...props}/>);
     await waitFor(() => expect(markerClicks).toHaveLength(2));
+    expect(mapOptions).toHaveBeenCalledWith(expect.objectContaining({ gestureHandling: "greedy" }));
+    expect(fitBounds).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /מקום שני נתניה 2/ }));
     expect(panTo).toHaveBeenLastCalledWith({ lat: 32.34, lng: 34.87 });
     markerClicks[0]();

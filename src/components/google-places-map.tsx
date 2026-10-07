@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Expand, LocateFixed, Minimize, MapPin, Star, X } from "lucide-react";
+import { Expand, LocateFixed, Minimize, MapPin, Star, ArrowLeft, ArrowRight, X } from "lucide-react";
 import type { Coordinates } from "@/modules/places/travel";
 
 type MapPlace = { id: string; he: string; en: string; areaHe: string; areaEn: string; image?: string; credit?: string; mapsUrl?: string; location?: Coordinates | null; rating?: number | null; openNow?: boolean | null };
@@ -117,7 +117,7 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: 
       markers.current.set(place.id, marker);
     });
     if (count === 1) { const only = places.map(point).find(Boolean); if (only) { instance.panTo(only); instance.setZoom(15); } }
-    else if (count > 1) instance.fitBounds(bounds, { top: 65, left: 45, right: 45, bottom: 175 });
+    else if (count > 1) instance.fitBounds(bounds, { top: 65, left: 45, right: 45, bottom: 65 });
     else if (center) instance.panTo(center);
     const currentMarkers = markers.current;
     return () => { currentMarkers.forEach(marker => { maps.event.clearInstanceListeners(marker); marker.setMap(null); }); currentMarkers.clear(); };
@@ -171,6 +171,7 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: 
   else embedParams.set("q", city.trim() || "Israel");
   return <section ref={panel} className={`weig-discovery-map${expanded ? " is-expanded" : ""}`} dir={he ? "rtl" : "ltr"}
     role={expanded ? "dialog" : undefined} aria-modal={expanded || undefined} aria-label={label("מפת המקומות", "Places map")} tabIndex={-1}>
+    <div className="weig-map-canvas">
     <div ref={surface} className="weig-map-surface" />
     {mapState === "fallback" && <iframe className="weig-map-surface" title={label("מפת Google Maps", "Google Maps")}
       src={`https://maps.google.com/maps?${embedParams}`}
@@ -178,10 +179,13 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: 
     {mapState === "loading" && <div className="weig-map-message" role="status">{label("טוענים מפה…", "Loading map…")}</div>}
     <div className="weig-map-controls">
       <button ref={expandButton} type="button" aria-label={expanded ? label("סגירת מסך מלא", "Close full screen") : label("מפה במסך מלא", "Full screen map")} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? <Minimize size={20}/> : <Expand size={20}/>}</button>
-      <button type="button" aria-label={label("מירכוז למיקום שלי", "Center on my location")} disabled={locating} onClick={recenter}><LocateFixed size={20}/></button>
-    </div>
+      </div>
+    <button type="button" className="weig-map-recenter" aria-label={label("מירכוז למיקום שלי", "Center on my location")} disabled={locating} onClick={recenter}><LocateFixed size={20}/></button>
     {locationMessage && <div className="weig-map-location-message" role="status">{locationMessage}</div>}
-    {places.length === 0 ? <div className="weig-map-empty"><MapPin size={24}/><span>{label("אין מקומות להצגה. נסו חיפוש או אזור אחר.", "No places to show. Try another search or area.")}</span></div> : <>
+    {places.length === 0 && <div className="weig-map-empty"><MapPin size={24}/><span>{label("אין מקומות להצגה. נסו חיפוש או אזור אחר.", "No places to show. Try another search or area.")}</span></div>}
+    {expanded && <button type="button" className="weig-map-close" onClick={() => setExpanded(false)} aria-label={label("סגירת המפה", "Close map")}><X size={20}/></button>}
+    </div>
+    {places.length > 0 && <>
       <div className="weig-map-cards" onScroll={event => {
         const rail = event.currentTarget;
         if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -200,18 +204,17 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: 
         {places.map((place, index) => <div key={place.id} className={`weig-map-card${focused?.id === place.id ? " is-selected" : ""}`}>
           <button ref={node => { if (node) cards.current.set(place.id, node); else cards.current.delete(place.id); }} type="button" className="weig-map-card-select" aria-label={`${he ? place.he : place.en} ${he ? place.areaHe : place.areaEn} ${index + 1}`} aria-pressed={focused?.id === place.id} onClick={() => setFocusedId(place.id)}>
             {place.image && <img src={place.image} alt="" loading="lazy"/>}
-            <span className="weig-map-card-copy"><strong>{he ? place.he : place.en}</strong><span>{he ? place.areaHe : place.areaEn}</span>
+            <span className="weig-map-card-copy"><span className="weig-map-card-head"><strong>{he ? place.he : place.en}</strong><span className="weig-map-card-rating" dir="ltr" aria-label={label("דירוג Google", "Google rating")}><Star size={13} fill="currentColor"/>{(place.rating ?? ratings[place.id])?.toFixed(1) ?? "—"}</span></span><span>{he ? place.areaHe : place.areaEn}</span>
               <span className="weig-map-distance">{travel?.(place) ?? label("מרחק אינו זמין", "Distance unavailable")}</span>
               {place.openNow != null && <span className={place.openNow ? "is-open" : "is-closed"}>{place.openNow ? label("פתוח עכשיו", "Open now") : label("סגור עכשיו", "Closed now")}</span>}
 
-            </span><span className="weig-map-card-rating" dir="ltr" aria-label={label("דירוג Google", "Google rating")}><Star size={13} fill="currentColor"/>{(place.rating ?? ratings[place.id])?.toFixed(1) ?? "—"}</span>
+            </span>
           </button>
           {place.credit && <details className="weig-map-photo-credit"><summary aria-label={label("קרדיט לתמונה", "Photo credit")}>ⓘ</summary><small>{place.credit}</small></details>}
-          <button type="button" className="weig-map-card-details" onClick={() => { setExpanded(false); onSelect(place); }} aria-label={`${label("פרטים על", "Details for")} ${he ? place.he : place.en}`}>{label("פרטי המקום", "Place details")}</button>
+          <div className="weig-map-card-action discover-feed-caption"><button type="button" className="weig-map-card-details" onClick={() => { setExpanded(false); onSelect(place); }} aria-label={`${label("פרטים על", "Details for")} ${he ? place.he : place.en}`}>{label("לגלות את המקום", "Explore place")}{he ? <ArrowLeft size={18}/> : <ArrowRight size={18}/>}</button></div>
         </div>)}
       </div>
       <span className="weig-map-sr-status" role="status" aria-live="polite">{focused && (he ? focused.he : focused.en)}</span>
     </>}
-    {expanded && <button type="button" className="weig-map-close" onClick={() => setExpanded(false)} aria-label={label("סגירת המפה", "Close map")}><X size={20}/></button>}
   </section>;
 }

@@ -63,3 +63,13 @@ The four product modules now have complete local, interactive UI previews. Authe
 - **AI:** full-height conversation workspace, new/history architecture, local conversation continuation, permission and personalization explanations, and explicit disconnected behavior.
 
 All demonstration records are presentation fixtures in the translation dictionaries and are explicitly labelled as demo content. They are never represented as provider results or production records.
+
+### Interactive Google discovery map
+
+The map and horizontal place cards use separate rows sized to the available viewport. The native Google map displays all results with valid coordinates, synchronizes marker/card selection, and uses `gestureHandling: "greedy"` for one-finger dragging. These native behaviors require a dedicated browser key:
+
+1. Enable **Maps JavaScript API** in the Google Cloud project with billing enabled.
+2. Create a browser API key restricted to **Websites** and to **Maps JavaScript API**. Allow `https://weig-app.vercel.app/*` and any other intentionally supported deployment origin.
+3. Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in the WEIG Vercel project's Production environment and redeploy.
+
+Do not copy the server-only `GOOGLE_PLACES_API_KEY` into a public variable. Until the browser key is configured, the Google iframe fallback focuses on the selected result's area; it cannot show all WEIG result markers or control Google's two-finger gesture behavior.
