@@ -12,6 +12,7 @@ import "@fontsource/assistant/hebrew-800.css";
 import "@fontsource/assistant/latin-400.css";
 import "@fontsource/assistant/latin-600.css";
 import "@fontsource/assistant/latin-700.css";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

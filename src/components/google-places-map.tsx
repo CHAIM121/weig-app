@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Expand, LocateFixed, Minimize, MapPin, X } from "lucide-react";
+import { Expand, LocateFixed, Minimize, MapPin, Star, X } from "lucide-react";
+import type * as Leaflet from "leaflet";
 import type { Coordinates } from "@/modules/places/travel";
 
 type MapPlace = { id: string; he: string; en: string; areaHe: string; areaEn: string; image?: string; credit?: string; mapsUrl?: string; location?: Coordinates | null; rating?: number | null; openNow?: boolean | null };
@@ -40,12 +41,18 @@ function point(place: MapPlace): Point | null {
     ? { lat: location.latitude, lng: location.longitude } : null;
 }
 
-export function GooglePlacesMap({ places, he, center, city, onSelect }: {
-  places: MapPlace[]; he: boolean; center: Point | null; city: string; onSelect: (place: MapPlace) => void;
+export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: {
+  places: MapPlace[]; he: boolean; center: Point | null; city: string; onSelect: (place: MapPlace) => void; travel?: (place: MapPlace) => string | null;
 }) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [mapState, setMapState] = useState<"loading" | "ready" | "fallback">("loading");
+  const [mapState, setMapState] = useState<"loading" | "ready" | "fallback" | "ready-fallback">("loading");
+  const [ratings, setRatings] = useState<Record<string, number | null>>({});
+  const [locationMessage, setLocationMessage] = useState("");
+  const [locating, setLocating] = useState(false);
+  const leaflet = useRef<typeof Leaflet | null>(null);
+  const fallbackMap = useRef<Leaflet.Map | null>(null);
+  const fallbackMarkers = useRef(new Map<string, Leaflet.Marker>());
   const surface = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
   const expandButton = useRef<HTMLButtonElement>(null);
@@ -70,6 +77,73 @@ export function GooglePlacesMap({ places, he, center, city, onSelect }: {
     // Keep one map instance through searches and card selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  useEffect(() => {
+    if (mapState !== "fallback" || !surface.current) return;
+    let disposed = false;
+    import("leaflet").then(L => {
+      if (disposed || !surface.current) return;
+      leaflet.current = L;
+      const instance = L.map(surface.current, { zoomControl: false }).setView([center?.lat ?? 31.77, center?.lng ?? 35.21], 12);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 19,
+      }).addTo(instance);
+      fallbackMap.current = instance;
+      setMapState("ready-fallback");
+    }).catch(() => { if (!disposed) setLocationMessage(label("לא הצלחנו לטעון את המפה", "Couldn't load the map")); });
+    return () => { disposed = true; };
+    // Initialize once; result updates are handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapState === "fallback"]);
+
+  useEffect(() => {
+    const L = leaflet.current, instance = fallbackMap.current;
+    if (mapState !== "ready-fallback" || !L || !instance) return;
+    const positions: Leaflet.LatLngExpression[] = [];
+    places.forEach((place, index) => {
+      const position = point(place);
+      if (!position) return;
+      const coords: Leaflet.LatLngExpression = [position.lat, position.lng];
+      positions.push(coords);
+      const marker = L.marker(coords, { icon: L.divIcon({ className: "weig-map-pin", html: `<span>${index + 1}</span>`, iconSize: [34, 34], iconAnchor: [17, 17] }), title: he ? place.he : place.en });
+      marker.on("click", () => setFocusedId(place.id));
+      marker.addTo(instance);
+      fallbackMarkers.current.set(place.id, marker);
+    });
+    if (positions.length === 1) instance.setView(positions[0], 15);
+    else if (positions.length > 1) instance.fitBounds(L.latLngBounds(positions), { paddingTopLeft: [45, 65], paddingBottomRight: [45, 185], maxZoom: 16 });
+    else if (center) instance.panTo([center.lat, center.lng]);
+    const current = fallbackMarkers.current;
+    return () => { current.forEach(marker => marker.remove()); current.clear(); };
+  }, [places, he, center, mapState]);
+
+  useEffect(() => {
+    if (!focused?.mapsUrl || focused.rating != null || focused.id in ratings) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/places/details?${new URLSearchParams({ id: focused.id, locale: he ? "he" : "en" })}`, { signal: controller.signal })
+        .then(response => { if (!response.ok) throw new Error("Rating unavailable"); return response.json(); })
+        .then(data => { if (!controller.signal.aborted) setRatings(previous => ({ ...previous, [focused.id]: typeof data.rating === "number" ? data.rating : null })); })
+        .catch(() => {});
+    }, 250);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [focused, he, ratings]);
+
+  useEffect(() => () => { fallbackMap.current?.remove(); fallbackMap.current = null; }, []);
+
+  const recenter = () => {
+    const move = (position: Point) => {
+      map.current?.panTo(position); map.current?.setZoom(14);
+      fallbackMap.current?.setView([position.lat, position.lng], 14);
+      setLocationMessage("");
+    };
+    if (center) { move(center); return; }
+    if (!navigator.geolocation) { setLocationMessage(label("המיקום אינו זמין במכשיר", "Location is unavailable on this device")); return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(position => { move({ lat: position.coords.latitude, lng: position.coords.longitude }); setLocating(false); }, () => {
+      setLocating(false); setLocationMessage(label("אפשרו גישה למיקום כדי למרכז את המפה", "Allow location access to center the map"));
+    }, { timeout: 10000, maximumAge: 60000 });
+  };
 
   useEffect(() => {
     const maps = browserMaps(), instance = map.current;
@@ -102,7 +176,11 @@ export function GooglePlacesMap({ places, he, center, city, onSelect }: {
       marker.setZIndex(selected ? 1000 : 1);
     });
     const position = point(focused);
-    if (focusedId && position) map.current?.panTo(position);
+    fallbackMarkers.current.forEach((marker, id) => {
+      marker.getElement()?.classList.toggle("is-selected", id === focused.id);
+      marker.setZIndexOffset(id === focused.id ? 1000 : 0);
+    });
+    if (focusedId && position) { map.current?.panTo(position); fallbackMap.current?.panTo([position.lat, position.lng]); }
     const card = cards.current.get(focused.id);
     if (focusedId && card?.parentElement) {
       const parent = card.parentElement;
@@ -129,25 +207,21 @@ export function GooglePlacesMap({ places, he, center, city, onSelect }: {
   }, [expanded]);
 
   useEffect(() => {
-    const observer = new ResizeObserver(() => { if (map.current) browserMaps()?.event.trigger(map.current, "resize"); });
+    const observer = new ResizeObserver(() => { if (map.current) browserMaps()?.event.trigger(map.current, "resize"); fallbackMap.current?.invalidateSize(); });
     if (surface.current) observer.observe(surface.current);
     return () => observer.disconnect();
   }, []);
 
-  const query = focused ? `${he ? focused.he : focused.en} ${he ? focused.areaHe : focused.areaEn}` : city.trim() || (center ? `${center.lat},${center.lng}` : "Israel");
   return <section ref={panel} className={`weig-discovery-map${expanded ? " is-expanded" : ""}`} dir={he ? "rtl" : "ltr"}
     role={expanded ? "dialog" : undefined} aria-modal={expanded || undefined} aria-label={label("מפת המקומות", "Places map")} tabIndex={-1}>
     <div ref={surface} className="weig-map-surface" />
-    {mapState === "fallback" && <iframe className="weig-map-surface" title={label("מפת Google Maps", "Google Maps")}
-      src={`https://maps.google.com/maps?${new URLSearchParams({ q: query, output: "embed", hl: he ? "he" : "en" })}`}
-      referrerPolicy="no-referrer-when-downgrade" allowFullScreen />}
-    {mapState === "loading" && <div className="weig-map-message" role="status">{label("טוענים מפה…", "Loading map…")}</div>}
+    {(mapState === "loading" || mapState === "fallback") && <div className="weig-map-message" role="status">{label("טוענים מפה…", "Loading map…")}</div>}
     <div className="weig-map-controls">
       <button ref={expandButton} type="button" aria-label={expanded ? label("סגירת מסך מלא", "Close full screen") : label("מפה במסך מלא", "Full screen map")} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? <Minimize size={20}/> : <Expand size={20}/>}</button>
-      {mapState === "ready" && center && <button type="button" aria-label={label("המיקום שלי", "My location")} onClick={() => { map.current?.panTo(center); map.current?.setZoom(14); }}><LocateFixed size={20}/></button>}
+      <button type="button" aria-label={label("מירכוז למיקום שלי", "Center on my location")} disabled={locating} onClick={recenter}><LocateFixed size={20}/></button>
     </div>
+    {locationMessage && <div className="weig-map-location-message" role="status">{locationMessage}</div>}
     {places.length === 0 ? <div className="weig-map-empty"><MapPin size={24}/><span>{label("אין מקומות להצגה. נסו חיפוש או אזור אחר.", "No places to show. Try another search or area.")}</span></div> : <>
-      <div className="weig-map-count">{places.length} {label("מקומות", "places")}</div>
       <div className="weig-map-cards" onScroll={event => {
         const rail = event.currentTarget;
         if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -167,11 +241,12 @@ export function GooglePlacesMap({ places, he, center, city, onSelect }: {
           <button ref={node => { if (node) cards.current.set(place.id, node); else cards.current.delete(place.id); }} type="button" className="weig-map-card-select" aria-label={`${he ? place.he : place.en} ${he ? place.areaHe : place.areaEn} ${index + 1}`} aria-pressed={focused?.id === place.id} onClick={() => setFocusedId(place.id)}>
             {place.image && <img src={place.image} alt="" loading="lazy"/>}
             <span className="weig-map-card-copy"><strong>{he ? place.he : place.en}</strong><span>{he ? place.areaHe : place.areaEn}</span>
-              {place.rating != null && <span dir="ltr">★ {place.rating}</span>}
+              <span className="weig-map-distance">{travel?.(place) ?? label("מרחק אינו זמין", "Distance unavailable")}</span>
               {place.openNow != null && <span className={place.openNow ? "is-open" : "is-closed"}>{place.openNow ? label("פתוח עכשיו", "Open now") : label("סגור עכשיו", "Closed now")}</span>}
-              {place.credit && <small>{place.credit}</small>}
-            </span><span className="weig-map-card-number">{index + 1}</span>
+
+            </span><span className="weig-map-card-rating" dir="ltr" aria-label={label("דירוג Google", "Google rating")}><Star size={13} fill="currentColor"/>{(place.rating ?? ratings[place.id])?.toFixed(1) ?? "—"}</span>
           </button>
+          {place.credit && <details className="weig-map-photo-credit"><summary aria-label={label("קרדיט לתמונה", "Photo credit")}>ⓘ</summary><small>{place.credit}</small></details>}
           <button type="button" className="weig-map-card-details" onClick={() => { setExpanded(false); onSelect(place); }} aria-label={`${label("פרטים על", "Details for")} ${he ? place.he : place.en}`}>{label("פרטי המקום", "Place details")}</button>
         </div>)}
       </div>

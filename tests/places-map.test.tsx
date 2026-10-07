@@ -2,6 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { GooglePlacesMap } from "@/components/google-places-map";
 
+const fallback = vi.hoisted(() => ({ panTo: vi.fn(), setView: vi.fn(), remove: vi.fn() }));
+vi.mock("leaflet", () => ({
+  map: () => { const instance = { ...fallback, setView: (...args: unknown[]) => { fallback.setView(...args); return instance; }, fitBounds: vi.fn(), invalidateSize: vi.fn() }; return instance; },
+  tileLayer: () => ({ addTo: vi.fn() }), divIcon: vi.fn(), latLngBounds: vi.fn(),
+  marker: () => ({ on: vi.fn(), addTo: vi.fn(), remove: vi.fn(), getElement: () => null, setZIndexOffset: vi.fn() }),
+}));
+
 const places = [
   { id: "first", he: "מקום ראשון", en: "First place", areaHe: "נתניה", areaEn: "Netanya", location: { latitude: 32.33, longitude: 34.86 } },
   { id: "second", he: "מקום שני", en: "Second place", areaHe: "נתניה", areaEn: "Netanya", location: { latitude: 32.34, longitude: 34.87 } },
@@ -22,9 +29,20 @@ describe("discovery map", () => {
     vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
     render(<GooglePlacesMap {...props}/>);
     fireEvent.click(screen.getByRole("button", { name: /מקום שני נתניה 2/ }));
-    expect(screen.getByTitle("מפת Google Maps")).toHaveAttribute("src", expect.stringContaining("q=" + new URLSearchParams({ q: "מקום שני" }).toString().slice(2)));
+    await waitFor(() => expect(fallback.panTo).toHaveBeenCalledWith([32.34, 34.87]));
+    expect(screen.queryByTitle("מפת Google Maps")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "פרטים על מקום שני" }));
     expect(props.onSelect).toHaveBeenCalledWith(places[1]);
+  });
+  it("shows rating and distance, removes the count, and centers the fallback map", async () => {
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
+    render(<GooglePlacesMap {...props} places={[{ ...places[0], rating: 4.4, credit: "Photo author" }]} center={{ lat: 32.3, lng: 34.8 }} travel={() => "2 ק״מ · 5 דק׳ בנסיעה"}/>);
+    expect(screen.getByText("4.4")).toBeInTheDocument();
+    expect(screen.getByText("2 ק״מ · 5 דק׳ בנסיעה")).toBeInTheDocument();
+    expect(screen.queryByText("1 מקומות")).toBeNull();
+    await waitFor(() => expect(fallback.setView).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "מירכוז למיקום שלי" }));
+    expect(fallback.setView).toHaveBeenLastCalledWith([32.3, 34.8], 14);
   });
   it("restores scrolling and keyboard focus after leaving full screen", () => {
     vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
