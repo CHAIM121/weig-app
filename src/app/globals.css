@@ -411,3 +411,19 @@ body{background:var(--paper);color:var(--ink)}
 @media(min-width:800px){.app-content:has(.discover-map-mode){padding-bottom:100px}}
 @media(max-width:620px){.app-content:has(.discover-map-mode){padding-inline:10px}.weig-map-card{flex-basis:min(340px,88vw)}.weig-discovery-map.is-expanded{inset:0;border-radius:0;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}}
 @media(max-height:650px){.discover-map-mode .discover-search{height:40px}.discover-map-mode .discover-toolbar{gap:4px}.discover-map-mode .discover-chips button{padding-block:5px}.weig-map-card-select{height:88px;padding:8px}.weig-map-card-action.discover-feed-caption{padding-bottom:8px}.weig-map-canvas{min-height:60px}}
+
+/* Compact discovery controls, shared by feed, list and map. */
+.discover-app.discover-app .discover-toolbar .discover-compact-header{display:flex;position:static;order:0;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding:0;flex:none}
+.discover-app.discover-app .discover-compact-header h1{margin:0;font-size:32px;line-height:1.2}
+.discover-app.discover-app .discover-toolbar .discover-search{order:1}
+.discover-app.discover-app .discover-toolbar .discover-chips{order:2;margin-top:12px}
+.discover-app.discover-app .discover-toolbar .discover-editorial{order:3;padding-top:14px}
+@media(max-width:799px){
+ .discover-app.discover-app .discover-toolbar .discover-compact-header{display:flex;margin:0;gap:8px;flex-wrap:wrap}
+ .discover-app.discover-app .discover-compact-header h1{font-size:24px}
+ .discover-app.discover-app .discover-compact-header .discover-view-actions{display:flex;gap:6px;flex-wrap:wrap}
+ .discover-app.discover-app .discover-compact-header .discover-mode-switch button{min-width:0;padding:7px 10px}
+ .discover-app.discover-app .discover-compact-header .discover-saved-toggle{padding:7px 10px}
+ .discover-app.discover-app .discover-toolbar .discover-editorial{display:none!important}
+ .discover-app.discover-app .discover-toolbar .discover-chips{margin-top:0}
+}
