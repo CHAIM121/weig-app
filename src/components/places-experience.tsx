@@ -9,6 +9,7 @@ import { placeCategories, type CategoryId } from "@/modules/places/categories";
 import { favoriteTheme, rankPlaces, readProfile, recordSignal, recentlySeen, type DiscoveryTheme } from "@/modules/places/discovery-engine";
 import { travelLabel, type Coordinates, type RouteSummary } from "@/modules/places/travel";
 import { NAVIGATION_PREFERENCE_EVENT, readNavigationPreference, type NavigationPreference } from "@/modules/places/navigation-preference";
+import { PlaceAiDialog, type AiPlace } from "./weig-ai";
 import { PlaceKashrut } from "./place-kashrut";
 import { GooglePlacesMap } from "./google-places-map";
 import { PlaceFeedbackSummary, RatingSheet, VisitPrompt, usePlaceFeedback, type FeedbackPlaceSnapshot } from "./place-feedback";
@@ -269,6 +270,12 @@ function usePlaceImpressions(items:Place[], signal:(place:Place,event:"impressio
 function Feed({places:items,he,saved,liked,toggle,toggleLike,select,signal,onNavigate,travel}:{places:Place[];he:boolean;saved:string[];liked:string[];toggle:(id:string)=>void;toggleLike:(id:string)=>void;select:(place:Place)=>void;signal:(place:Place,event:"impression"|"open"|"share"|"navigate")=>void;onNavigate:(place:Place)=>void;travel:(place:Place)=>string|null}){
  const label=(h:string,e:string)=>he?h:e;
  const container=usePlaceImpressions(items,signal);
+ const [aiPlace,setAiPlace]=useState<AiPlace|null>(null);
+ const [showAiTip,setShowAiTip]=useState(false);
+ useEffect(()=>{let seen=false;try{seen=localStorage.getItem("weig-ai-intro-seen-v1")==="1"}catch{}if(seen)return;const timer=window.setTimeout(()=>setShowAiTip(true),1100);return()=>window.clearTimeout(timer)},[]);
+ const dismissAiTip=()=>{setShowAiTip(false);try{localStorage.setItem("weig-ai-intro-seen-v1","1")}catch{}};
+ const askAi=(place:Place)=>{dismissAiTip();setAiPlace({id:place.id,name:he?place.he:place.en,address:he?place.areaHe:place.areaEn,description:he?place.descriptionHe:place.descriptionEn})};
+
  const [copiedId,setCopiedId]=useState<string|null>(null);
  const [burstId,setBurstId]=useState<string|null>(null);
  const burstTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -277,11 +284,11 @@ function Feed({places:items,he,saved,liked,toggle,toggleLike,select,signal,onNav
  const share=async(place:Place)=>{const url=new URL(`/${he?"he":"en"}/places`,window.location.origin);url.searchParams.set("place",place.id);const link=url.toString();try{if(navigator.share){await navigator.share({title:`${he?place.he:place.en} · WEIG`,url:link});signal(place,"share");return}await navigator.clipboard.writeText(link);signal(place,"share");setCopiedId(place.id);window.setTimeout(()=>setCopiedId(null),2500)}catch(error){if((error as Error).name!=="AbortError"&&typeof window.prompt==="function")window.prompt(label("העתיקו קישור למקום ב־WEIG","Copy the WEIG place link"),link)}};
  return <div className="discover-feed"><div className="discover-feed-list" ref={container}>{items.map((place,index)=><article className="discover-feed-card" data-place-id={place.id} key={place.id}>
   <img src={place.image} alt={he?place.he:place.en} loading={index===0?"eager":"lazy"} fetchPriority={index===0?"high":"auto"} decoding="async"/><div className="discover-feed-shade"/>
-  <div className="discover-feed-top"><span><MapPin size={14}/>{he?place.areaHe:place.areaEn}</span><span dir="ltr">{String(index+1).padStart(2,"0")} / {String(items.length).padStart(2,"0")}</span></div>
+  <div className="discover-feed-ai"><button type="button" className="discover-ai-button" onClick={()=>askAi(place)} aria-label={`${label("שאלו AI על","Ask AI about")} ${he?place.he:place.en}`} aria-haspopup="dialog"><Sparkles size={18}/><span>AI</span></button>{index===0&&showAiTip&&<div className="discover-ai-tip" role="status"><button type="button" aria-label={label("סגירת ההסבר","Dismiss tip")} onClick={dismissAiTip}><X size={14}/></button><strong>{label("יש לכם שאלה על המקום?","Curious about this place?")}</strong><p>{label("לחצו על AI — אפשר לשאול ולהתייעץ לפני שיוצאים.","Tap AI to ask questions and get advice before you go.")}</p></div>}</div>
   <div className="discover-feed-actions" aria-label={label("פעולות למקום","Place actions")}><button type="button" className={burstId===place.id?"is-heart-burst":undefined} aria-label={`${liked.includes(place.id)?label("ביטול אהבתי","Unlike"):label("אהבתי","Like")} ${he?place.he:place.en}`} aria-pressed={liked.includes(place.id)} onClick={()=>like(place.id)}><Heart size={23} fill={liked.includes(place.id)?"currentColor":"none"}/></button><a href={mapsLink(place)} target="_blank" rel="noopener noreferrer" onClick={()=>onNavigate(place)} aria-label={`${label("ניווט אל","Navigate to")} ${he?place.he:place.en}`}><Navigation size={22}/></a><button type="button" aria-label={`${label("שיתוף","Share")} ${he?place.he:place.en}`} onClick={()=>void share(place)}><Share2 size={22}/></button><button type="button" aria-label={`${saved.includes(place.id)?label("הסר משמורים","Remove saved"):label("שמירה","Save")} ${he?place.he:place.en}`} aria-pressed={saved.includes(place.id)} onClick={()=>toggle(place.id)}><Bookmark size={22} fill={saved.includes(place.id)?"currentColor":"none"}/></button></div>
-  <div className="discover-feed-caption"><span>{he?place.kindHe:place.kindEn}</span><h3>{he?place.he:place.en}</h3>{travel(place)&&<p className="discover-feed-travel"><Navigation size={15}/>{travel(place)}</p>}<p>{he?place.descriptionHe:place.descriptionEn}</p><button onClick={()=>select(place)}>{label("לגלות את המקום","Explore place")}{he?<ArrowLeft size={18}/>:<ArrowRight size={18}/>}</button></div>
+  <div className="discover-feed-caption"><span>{he?place.kindHe:place.kindEn}</span><h3>{he?place.he:place.en}</h3><p className="discover-feed-address"><MapPin size={14}/>{he?place.areaHe:place.areaEn}</p>{travel(place)&&<p className="discover-feed-travel"><Navigation size={15}/>{travel(place)}</p>}<p>{he?place.descriptionHe:place.descriptionEn}</p><button onClick={()=>select(place)}>{label("לגלות את המקום","Explore place")}{he?<ArrowLeft size={18}/>:<ArrowRight size={18}/>}</button></div>
   <small className="discover-feed-credit">{place.credit}</small>
- </article>)}</div></div>
+ </article>)}</div>{aiPlace&&<PlaceAiDialog he={he} place={aiPlace} close={()=>setAiPlace(null)}/>}</div>
 }
 
 function ListView({places:items,he,saved,toggle,select,signal,travel}:{places:Place[];he:boolean;saved:string[];toggle:(id:string)=>void;select:(place:Place)=>void;signal:(place:Place,event:"impression"|"open"|"share"|"navigate")=>void;travel:(place:Place)=>string|null}){
