@@ -9,6 +9,12 @@ import { extractAnswer, searchPlaces } from "@/lib/ai/tools";
 beforeEach(() => { vi.unstubAllGlobals(); auth.user = { id: "ai-test-user", is_anonymous: false }; vi.stubEnv("OPENAI_API_KEY", "test-key"); vi.stubEnv("GOOGLE_PLACES_API_KEY", ""); });
 const request = (body: unknown) => new NextRequest("https://weig.example/api/ai/chat", { method: "POST", headers: { "Content-Type": "application/json", origin: "https://weig.example" }, body: JSON.stringify(body) });
 describe("WEIG assistant", () => {
+ it("makes place links clickable and cleans stray space entities without rendering HTML", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ answer: "מקום &#x20; [למקום](https://maps.google.com/?cid=123) <script>bad</script> [bad](javascript:alert(1))" })));
+  render(<WeigAiChat he/>); fireEvent.change(screen.getByLabelText("השאלה שלך"), { target: { value: "תן לי קישור" } }); fireEvent.click(screen.getByLabelText("שליחה"));
+  await waitFor(() => expect(screen.getByRole("link", { name: "למקום" })).toHaveAttribute("href", "https://maps.google.com/?cid=123"));
+  expect(document.querySelector("script")).toBeNull(); expect(screen.queryByRole("link", { name: "bad" })).toBeNull(); expect(screen.queryByText(/&#x20;/)).toBeNull();
+ });
  it("enables web search and returns clickable citation ranges", async () => {
   auth.user!.id = "web-test";
   const fetch = vi.fn().mockResolvedValue(Response.json({ output: [{ content: [{ type: "output_text", text: "Verified [1]", annotations: [{ type: "url_citation", start_index: 9, end_index: 12, url: "https://example.org", title: "Source" }] }] }] })); vi.stubGlobal("fetch", fetch);

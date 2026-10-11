@@ -36,15 +36,29 @@ export function WeigAiChat({ he, place: initialPlace, onClose }: { he: boolean; 
   <small className="weig-ai-footnote">{label("כדאי לאמת פרטים חשובים לפני שיוצאים לדרך.", "Verify important details before heading out.")}</small>
  </section>;
 }
+function LinkedText({ text }: { text: string }) {
+ const clean = text.replace(/&#(?:x20|32);/gi, " ");
+ const parts: React.ReactNode[] = []; let cursor = 0;
+ const pattern = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|https?:\/\/[^\s<>]+/g;
+ for (const match of clean.matchAll(pattern)) {
+  const start = match.index!;
+  parts.push(clean.slice(cursor, start));
+  const raw = match[2] || match[0]; const url = raw.replace(/[.,;!?،。]+$/, "");
+  parts.push(<a key={`${start}-${url}`} href={url} target="_blank" rel="noopener noreferrer">{match[1] || url}</a>);
+  if (!match[2]) parts.push(raw.slice(url.length));
+  cursor = start + match[0].length;
+ }
+ parts.push(clean.slice(cursor)); return <>{parts}</>;
+}
 function CitedAnswer({ content, citations = [] }: { content: string; citations?: Citation[] }) {
  let cursor = 0; const parts: React.ReactNode[] = [];
  for (const ref of [...citations].sort((a, b) => a.start - b.start)) {
   if (!/^https?:\/\//i.test(ref.url) || !Number.isInteger(ref.start) || !Number.isInteger(ref.end) || ref.start < cursor || ref.end <= ref.start || ref.end > content.length) continue;
-  parts.push(content.slice(cursor, ref.start));
+  parts.push(<LinkedText key={`text-${cursor}`} text={content.slice(cursor, ref.start)}/>);
   parts.push(<a key={`${ref.start}-${ref.url}`} href={ref.url} target="_blank" rel="noopener noreferrer" title={ref.title}>{content.slice(ref.start, ref.end)}</a>);
   cursor = ref.end;
  }
- parts.push(content.slice(cursor)); return <>{parts}</>;
+ parts.push(<LinkedText key={`text-${cursor}`} text={content.slice(cursor)}/>); return <>{parts}</>;
 }
 export function PlaceAiDialog({ he, place, close }: { he: boolean; place: AiPlace; close: () => void }) {
  const dialog = useRef<HTMLDialogElement>(null);
