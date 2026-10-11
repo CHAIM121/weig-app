@@ -1,7 +1,7 @@
 import {createHash} from "node:crypto";
 
 /** Offline staging only. This module never fetches, writes evidence, or starts a schedule. */
-export type Scope = "branch" | "kitchen" | "department" | "counter" | "product" | "event";
+export type Scope = "branch" | "kitchen" | "department" | "counter" | "product" | "event" | "unspecified";
 export type CollectedEvidence = {
  sourceKey:string;
  agencyCode:string;
@@ -9,6 +9,8 @@ export type CollectedEvidence = {
  address:string;
  city:string;
  country:string;
+ /** Missing official branch address/locality must remain unmatchable, not inferred. */
+ matchEligible:boolean;
  scope:Scope;
  scopeText:string;
  evidenceType:"official_listing" | "certificate" | "revocation";
@@ -50,7 +52,7 @@ function date(value:string){
 function https(value:string){
  try {const url=new URL(value);return url.protocol==="https:" && !url.username && !url.password;} catch {return false;}
 }
-const scopes:Scope[]=["branch","kitchen","department","counter","product","event"];
+const scopes:Scope[]=["branch","kitchen","department","counter","product","event","unspecified"];
 const claimValues=["yes","no","unknown","not_applicable"];
 function canonical(value:unknown):string{
  if(Array.isArray(value))return `[${value.map(canonical).join(",")}]`;
@@ -80,7 +82,8 @@ export function stageCollection(collection:Collection,now=new Date()):StageResul
  const keys=new Set<string>();
  for(const r of collection.records??[]){
   if(!r || typeof r!=="object"){reasons.push("invalid_record");continue;}
-  if([r.sourceKey,r.agencyCode,r.businessName,r.address,r.city,r.scopeText,r.sourceText].some(v=>typeof v!=="string" || !v.trim()))reasons.push("missing_record_identity_or_scope");
+  if([r.sourceKey,r.agencyCode,r.businessName,r.scopeText,r.sourceText].some(v=>typeof v!=="string" || !v.trim()))reasons.push("missing_record_identity_or_scope");
+  if(typeof r.address!=="string" || typeof r.city!=="string" || typeof r.matchEligible!=="boolean" || (r.matchEligible && (!r.address.trim() || !r.city.trim())))reasons.push("missing_record_identity_or_scope");
   if(!/^[A-Z]{2}$/.test(r.country) || !scopes.includes(r.scope) || !["official_listing","certificate","revocation"].includes(r.evidenceType))reasons.push("invalid_record_kind");
   if(!https(r.sourceUrl))reasons.push("invalid_source_url");
   if(r.validUntil!==null && (typeof r.validUntil!=="string" || !date(r.validUntil)))reasons.push("invalid_expiry");

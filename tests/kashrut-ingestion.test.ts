@@ -4,7 +4,7 @@ import {compareStagedCollections,stageCollection,type CollectedEvidence,type Col
 
 const now=new Date("2026-10-11T22:00:00Z");
 function record(key="1",changes:Partial<CollectedEvidence>={}):CollectedEvidence{
- return {sourceKey:key,agencyCode:"test_agency",businessName:`Business ${key}`,address:`Main ${key}`,city:"Test City",country:"IL",scope:"branch",scopeText:"Entire branch",evidenceType:"official_listing",sourceUrl:"https://example.org/list",sourceText:"Published branch listing",validUntil:null,sourceUpdatedAt:null,claims:{milk:"unknown"},...changes};
+ return {sourceKey:key,agencyCode:"test_agency",businessName:`Business ${key}`,address:`Main ${key}`,city:"Test City",country:"IL",matchEligible:true,scope:"branch",scopeText:"Entire branch",evidenceType:"official_listing",sourceUrl:"https://example.org/list",sourceText:"Published branch listing",validUntil:null,sourceUpdatedAt:null,claims:{milk:"unknown"},...changes};
 }
 function collection(changes:Partial<Collection>={}):Collection{
  return {sourceCode:"test_source",adapterVersion:"1",coverageKey:"city:test;key:id;kind:establishments",startedAt:"2026-10-10T12:00:00Z",finishedAt:"2026-10-10T12:01:00Z",outcome:"success",completeness:"full",expectedPages:1,receivedPages:1,expectedRecords:null,completenessEvidence:"Final cursor exhausted; one page",failureReason:null,records:[record()],...changes};
