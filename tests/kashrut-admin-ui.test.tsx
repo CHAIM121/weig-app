@@ -24,3 +24,15 @@ it("allows a scoped relationship to be reviewed without starting collection",asy
  fireEvent.change(screen.getByLabelText(/שם הקשר/),{target:{value:"קשר מועמד"}});fireEvent.change(screen.getByLabelText(/מהגוף/),{target:{value:snapshot.data.agencies[0].id}});fireEvent.change(screen.getByLabelText(/אל הגוף/),{target:{value:"22222222-2222-2222-2222-222222222222"}});fireEvent.change(screen.getByLabelText(/תחום ותנאי/),{target:{value:"תחום לבדיקה בלבד"}});fireEvent.click(screen.getByRole("button",{name:"שמירת רשומה"}));await screen.findByText("השינוי נשמר במאגר ובהיסטוריית השינויים.");
  const body=JSON.parse(String(fetcher.mock.calls.find(([,init])=>init?.method==="POST")?.[1]?.body));expect(body.entity).toBe("relationships");expect(body.values.status).toBe("candidate");expect(fetcher.mock.calls.every(([url])=>url==="/api/kashrut/admin")).toBe(true);
 });
+
+it("adds multiple contact people, removes one, and preserves the saved list on reopening",async()=>{
+ const saved={...snapshot,data:{...snapshot.data,agencies:[{...snapshot.data.agencies[0],phone:"02-6550550",email:"office@example.org",contacts:[{name:"מזכירות",role:"משרד",phone:"050-1234567",email:"contact@example.org"}]}]}};
+ const fetcher=vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(new Response(JSON.stringify(snapshot))).mockResolvedValueOnce(new Response(JSON.stringify({record:saved.data.agencies[0]}))).mockResolvedValue(new Response(JSON.stringify(saved)));
+ render(<KashrutAdmin locale="he"/>);await screen.findByText("גוף בבדיקה");fireEvent.click(screen.getByRole("button",{name:"עריכה"}));
+ fireEvent.change(screen.getByLabelText("טלפון הגוף"),{target:{value:"02-6550550"}});fireEvent.change(screen.getByLabelText("אימייל הגוף"),{target:{value:"office@example.org"}});
+ fireEvent.click(screen.getByRole("button",{name:"+ הוספת איש קשר"}));fireEvent.change(screen.getByLabelText("שם איש קשר 1"),{target:{value:"מזכירות"}});fireEvent.change(screen.getByLabelText("תפקיד איש קשר 1"),{target:{value:"משרד"}});fireEvent.change(screen.getByLabelText("טלפון איש קשר 1"),{target:{value:"050-1234567"}});fireEvent.change(screen.getByLabelText("אימייל איש קשר 1"),{target:{value:"contact@example.org"}});
+ fireEvent.click(screen.getByRole("button",{name:"+ הוספת איש קשר"}));fireEvent.change(screen.getByLabelText("שם איש קשר 2"),{target:{value:"איש זמני"}});fireEvent.click(screen.getByRole("button",{name:"הסרת איש קשר 2"}));
+ fireEvent.click(screen.getByRole("button",{name:"שמירת רשומה"}));await screen.findByText("השינוי נשמר במאגר ובהיסטוריית השינויים.");
+ const body=JSON.parse(String(fetcher.mock.calls.find(([,init])=>init?.method==="POST")?.[1]?.body));expect(body.values.contacts).toEqual(saved.data.agencies[0].contacts);expect(body.version).toBe(1);
+ expect(screen.getByRole("link",{name:"contact@example.org"})).toHaveAttribute("href","mailto:contact@example.org");fireEvent.click(screen.getByRole("button",{name:"עריכה"}));expect(screen.getByLabelText("שם איש קשר 1")).toHaveValue("מזכירות");expect(screen.getByLabelText("טלפון הגוף")).toHaveValue("02-6550550");
+});
