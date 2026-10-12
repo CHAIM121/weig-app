@@ -3,11 +3,15 @@ export type Entity=keyof typeof entities;
 export type RecordRow={id:string;version:number;[key:string]:unknown};
 export const labels:Record<string,string>={candidate:"מועמד לאימות",verified:"זהות / מקור אומתו",needs_review:"דורש בדיקה מחדש",inactive:"לא פעיל",national_authority:"רשות ארצית",local_authority:"רשות מקומית",independent:"גוף עצמאי / בד״ץ",international:"ארגון בינלאומי",community:"גוף קהילתי",recommender:"גוף ממליץ",level:"רמה שפורסמה",food:"סוג מזון",equipment:"ציוד",milk:"מאפייני חלב",meat:"מאפייני בשר",baking:"מאפייה ודגנים",cooking:"בישול",passover:"פסח",produce:"תוצרת חקלאית",scope:"היקף השגחה",other:"אחר",planned:"חיבור מתוכנן",manual_import:"יבוא ידני",testing:"בבדיקה",active:"פעיל",blocked:"גישה חסומה",paused:"מושהה",full:"רשימה מלאה",partial:"רשימה חלקית",unknown:"לא ידוע",open:"ממתין לבדיקה",in_review:"בבדיקה",resolved:"הבדיקה הושלמה",rejected:"נדחה",agency:"גוף",source:"מקור",classification:"סיווג",html:"אתר / רשימה",api:"API",pdf:"PDF",dataset:"קובץ נתונים",certificate:"תעודה",alerts:"הודעות ועדכונים"};
 Object.assign(labels,{relationship:"קשר בין גופים",parent_of:"גוף אם של",branch_of:"סניף של",brand_of:"מותג של",renamed_to:"שינה שם ל",recognizes:"מכיר בגוף",recommends:"ממליץ על הגוף",not_checked:"טרם נבדקו תנאי הגישה",allowed:"גישה אוטומטית מותרת לפי ראיה",permission_required:"נדרש אישור",prohibited:"איסוף אוטומטי אסור",establishments:"בתי עסק",products:"מוצרים",certificates:"תעודות",agency_directory:"מדריך גופים",unspecified:"טרם הוגדר",manual:"לפי בקשה",daily:"יומי",weekly:"שבועי",untested:"טרם נבדק",passed:"עבר בדיקות",failed:"נכשל בבדיקות"});
-export type Field={key:string;label:string;type?:"text"|"textarea"|"array"|"boolean"|"date";options?:readonly string[];reference?:Entity;required?:boolean};
+export type AgencyContact={name:string;role:string;phone:string;email:string};
+export const contactLimit=20;
+const validEmail=(value:string)=>!value||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const validPhone=(value:string)=>!value||/^[+\d][\d\s().#*+-]{2,49}$/.test(value);
+export type Field={key:string;label:string;type?:"text"|"textarea"|"array"|"boolean"|"date"|"tel"|"email"|"contacts";options?:readonly string[];reference?:Entity;required?:boolean};
 const identity:Field[]=[{key:"code",label:"מזהה קבוע",required:true},{key:"name_he",label:"שם בעברית",required:true},{key:"name_en",label:"שם בשפה נוספת"}];
 const status:Field={key:"status",label:"מצב אימות",required:true,options:["candidate","verified","needs_review","inactive"]};
 export const fields:Record<Entity,Field[]>={
- agencies:[...identity,{key:"kind",label:"סוג הגוף",required:true,options:["national_authority","local_authority","independent","international","community","recommender"]},{key:"aliases",label:"שמות חלופיים (מופרדים בפסיק)",type:"array"},{key:"countries",label:"קודי מדינות פעילות שפורסמו (IL, US, GB)",type:"array"},{key:"base_country",label:"מדינת בסיס (קוד בשתי אותיות)"},{key:"official_url",label:"אתר / ערוץ רשמי (HTTPS)"},status,{key:"notes",label:"ראיות, תחומי פעילות והערות",type:"textarea"}],
+ agencies:[...identity,{key:"kind",label:"סוג הגוף",required:true,options:["national_authority","local_authority","independent","international","community","recommender"]},{key:"aliases",label:"שמות חלופיים (מופרדים בפסיק)",type:"array"},{key:"countries",label:"קודי מדינות פעילות שפורסמו (IL, US, GB)",type:"array"},{key:"base_country",label:"מדינת בסיס (קוד בשתי אותיות)"},{key:"official_url",label:"אתר / ערוץ רשמי (HTTPS)"},{key:"phone",label:"טלפון הגוף",type:"tel"},{key:"email",label:"אימייל הגוף",type:"email"},{key:"fax",label:"פקס",type:"tel"},{key:"address",label:"כתובת המשרד"},{key:"mailing_address",label:"כתובת למשלוח דואר / ת״ד"},{key:"office_hours",label:"שעות פעילות"},{key:"contacts",label:"אנשי קשר",type:"contacts"},status,{key:"notes",label:"ראיות, תחומי פעילות והערות",type:"textarea"}],
  classifications:[...identity,{key:"category",label:"קבוצת סיווג",required:true,options:["level","food","equipment","milk","meat","baking","cooking","passover","produce","scope","other"]},{key:"aliases",label:"מילים חלופיות (מופרדות בפסיק)",type:"array"},{key:"description",label:"משמעות והגבלות",type:"textarea"},{key:"active",label:"סיווג פעיל",type:"boolean"}],
  sources:[identity[0],identity[1],{key:"agency_id",label:"הגוף המכשיר / הגוף שהמידע מתייחס אליו",reference:"agencies",required:true},{key:"owner_agency_id",label:"בעל המקור (אם הוא גוף רשום)",reference:"agencies"},{key:"publisher",label:"מפרסם המידע"},{key:"url",label:"כתובת המקור (HTTPS)",required:true},{key:"format",label:"פורמט",required:true,options:["html","api","pdf","dataset","certificate","alerts"]},status,{key:"connection_state",label:"מצב החיבור",required:true,options:["planned","manual_import","testing","blocked","paused"]},{key:"coverage",label:"כיסוי שפורסם"},{key:"completeness",label:"שלמות הרשימה",required:true,options:["unknown","full","partial"]},{key:"content_kind",label:"סוג המידע",required:true,options:["unspecified","establishments","products","certificates","alerts","agency_directory"]},{key:"access_status",label:"תנאי איסוף אוטומטי",required:true,options:["not_checked","allowed","permission_required","prohibited"]},{key:"terms_url",label:"תנאים / ראיית הרשאת גישה (HTTPS)"},{key:"access_notes",label:"מסקנת בדיקת תנאי הגישה",type:"textarea"},{key:"stable_key",label:"מזהה רשומה יציב שפורסם"},{key:"refresh_frequency",label:"תדירות איסוף מתוכננת",required:true,options:["unspecified","manual","daily","weekly"]},{key:"adapter_version",label:"גרסת חיבור שנבדקה"},{key:"adapter_test_status",label:"בדיקות החיבור",required:true,options:["untested","passed","failed"]},{key:"adapter_test_notes",label:"ראיות בדיקות החיבור",type:"textarea"},{key:"notes",label:"ראיות אימות ומגבלות גישה",type:"textarea"}],
  relationships:[{key:"title",label:"שם הקשר",required:true},{key:"from_agency_id",label:"מהגוף",reference:"agencies",required:true},{key:"to_agency_id",label:"אל הגוף",reference:"agencies",required:true},{key:"relationship_type",label:"סוג הקשר",required:true,options:["parent_of","branch_of","brand_of","renamed_to","recognizes","recommends"]},{key:"scope",label:"תחום ותנאי הקשר",type:"textarea",required:true},{key:"evidence_url",label:"פרסום שמוכיח את הקשר (HTTPS)"},{key:"valid_from",label:"תחילת תוקף שפורסמה",type:"date"},{key:"valid_until",label:"סיום תוקף שפורסם",type:"date"},status,{key:"notes",label:"ראיות והסתייגויות",type:"textarea"}],
@@ -20,6 +24,24 @@ export function validateRecord(entity:Entity,input:unknown):Record<string,unknow
  const raw=input as Record<string,unknown>,out:Record<string,unknown>={};
  for(const f of fields[entity]){
   const v=raw[f.key];
+  if(f.type==="contacts"){
+   // Missing fields from older clients must not clear an existing contact list.
+   if(v===undefined)continue;
+   if(!Array.isArray(v)||v.length>contactLimit)throw Error("ניתן להוסיף עד 20 אנשי קשר");
+   out[f.key]=v.map((item,index)=>{
+    if(!item||typeof item!=="object"||Array.isArray(item))throw Error("איש קשר אינו תקין");
+    const contact={} as AgencyContact;
+    for(const key of ["name","role","phone","email"] as const){
+     const value=(item as Record<string,unknown>)[key];
+     if(typeof value!=="string"||value.trim().length>(key==="phone"?50:200))throw Error(`פרטי איש קשר ${index+1} אינם תקינים`);
+     contact[key]=value.trim();
+    }
+    if(!contact.name)throw Error(`חסר שם לאיש קשר ${index+1}`);
+    if(!validPhone(contact.phone)||!validEmail(contact.email))throw Error(`טלפון או אימייל לא תקינים לאיש קשר ${index+1}`);
+    return contact;
+   });continue;
+  }
+  if(entity==="agencies"&&["phone","email","fax","address","mailing_address","office_hours"].includes(f.key)&&v===undefined)continue;
   if(f.type==="boolean"){if(typeof v!=="boolean")throw Error("יש לבחור מצב לסיווג");out[f.key]=v;continue}
   if(f.type==="array"){
    if(!Array.isArray(v)||v.length>40||v.some(x=>typeof x!=="string"||x.trim().length>160))throw Error(`ערך לא תקין: ${f.label}`);
@@ -28,7 +50,9 @@ export function validateRecord(entity:Entity,input:unknown):Record<string,unknow
   }
   if(v!==null&&v!==undefined&&typeof v!=="string")throw Error(`ערך לא תקין: ${f.label}`);
   const value=typeof v==="string"?v.trim():"";
-  if(value.length>(f.type==="textarea"?4000:f.key.endsWith("_url")||f.key==="url"?2000:200))throw Error(`ערך ארוך מדי: ${f.label}`);
+  if(value.length>(f.type==="textarea"?4000:f.type==="tel"?50:f.key.endsWith("_url")||f.key==="url"?2000:200))throw Error(`ערך ארוך מדי: ${f.label}`);
+  if(f.type==="email"&&!validEmail(value))throw Error("כתובת אימייל אינה תקינה");
+  if(f.type==="tel"&&!validPhone(value))throw Error("מספר טלפון או פקס אינו תקין");
   if(f.required&&!value)throw Error(`חסר: ${f.label}`);
   if(f.options&&!f.options.includes(value))throw Error(`בחירה לא תקינה: ${f.label}`);
   if(f.reference&&value&&!uuid.test(value))throw Error(`פריט לא תקין: ${f.label}`);

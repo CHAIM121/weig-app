@@ -21,3 +21,18 @@ describe("manager authorization",()=>{
  it("rejects cross-origin writes before touching authentication or data",async()=>{const response=await POST(new NextRequest("https://weig-app.vercel.app/api/kashrut/admin",{method:"POST",headers:{origin:"https://other.example","content-type":"application/json"},body:"{}"}));expect(response.status).toBe(403);expect(mock.create).not.toHaveBeenCalled()});
  it("checks manager authorization before accepting a write",async()=>{mock.create.mockResolvedValue({auth:{getUser:async()=>({data:{user:{id:"user"}}})},from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})})})});const r=await POST(new NextRequest("https://weig-app.vercel.app/api/kashrut/admin",{method:"POST",headers:{origin:"https://weig-app.vercel.app","content-type":"application/json"},body:JSON.stringify({entity:"agencies",values:agency})}));expect(r.status).toBe(403)});
 });
+
+describe("agency contact validation",()=>{
+ it("normalizes multiple contacts without accepting extra privileged fields",()=>{
+  const out=validateRecord("agencies",{...agency,phone:" 02-6550550 ",email:" office@example.org ",contacts:[{name:" חיים ",role:"מנהל",phone:"050-1234567",email:"chaim@example.org",admin:true},{name:"מזכירות",role:"",phone:"",email:""}]});
+  expect(out.phone).toBe("02-6550550");expect(out.email).toBe("office@example.org");expect(out.contacts).toEqual([{name:"חיים",role:"מנהל",phone:"050-1234567",email:"chaim@example.org"},{name:"מזכירות",role:"",phone:"",email:""}]);
+ });
+ it("rejects malformed contacts, missing names, invalid emails and oversized lists",()=>{
+  for(const contacts of [{},[null],[{name:"",role:"",phone:"",email:""}],[{name:"מזכירות",role:"",phone:"",email:"bad"}],Array(21).fill({name:"אדם",role:"",phone:"",email:""})])expect(()=>validateRecord("agencies",{...agency,contacts})).toThrow();
+  expect(()=>validateRecord("agencies",{...agency,email:"bad"})).toThrow();expect(()=>validateRecord("agencies",{...agency,phone:"javascript:alert(1)"})).toThrow();
+ });
+ it("does not clear contacts when an older client omits the new fields",()=>{
+  const out=validateRecord("agencies",agency);expect(Object.hasOwn(out,"contacts")).toBe(false);expect(Object.hasOwn(out,"phone")).toBe(false);
+  expect(validateRecord("agencies",{...agency,contacts:[]}).contacts).toEqual([]);
+ });
+});

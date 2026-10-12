@@ -72,3 +72,17 @@ processing and regional coverage remain to be implemented. Classification defini
 not themselves business-level claims. Seed country lists are partial known
 activity, not exhaustive operating footprints. The management UI currently uses
 Hebrew labels, including when its route is opened under the English locale.
+
+## Agency contacts — 12 October 2026
+
+Every agency now has editable phone, email, fax, office address, mailing address
+and office hours. A “+ הוספת איש קשר” control manages up to 20 named contacts
+with role, phone and email. Contacts are saved atomically with the agency using
+its existing version check, manager-only RLS and before/after audit history.
+Omitting new fields in an older client does not clear existing contact data.
+Contact edits do not advance identity verification dates or change status.
+This information is management data and is not exposed in public place cards.
+
+Beit Yosef office details were supplied by the owner on 12 October 2026;
+recorded as owner-provided contact information, without changing the pending
+identity/source verification status. No email or named contact was invented.
