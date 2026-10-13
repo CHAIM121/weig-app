@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Expand, LocateFixed, Minimize, MapPin, Star, ArrowLeft, ArrowRight, X } from "lucide-react";
+import { PlaceAiButton } from "./weig-ai";
 import type { Coordinates } from "@/modules/places/travel";
 
 type MapPlace = { id: string; he: string; en: string; areaHe: string; areaEn: string; image?: string; credit?: string; mapsUrl?: string; location?: Coordinates | null; rating?: number | null; openNow?: boolean | null };
@@ -40,8 +41,8 @@ function point(place: MapPlace): Point | null {
     ? { lat: location.latitude, lng: location.longitude } : null;
 }
 
-export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: {
-  places: MapPlace[]; he: boolean; center: Point | null; city: string; onSelect: (place: MapPlace) => void; travel?: (place: MapPlace) => string | null;
+export function GooglePlacesMap({ places, he, center, city, onSelect, onAskAi, travel }: {
+  places: MapPlace[]; he: boolean; center: Point | null; city: string; onSelect: (place: MapPlace) => void; onAskAi?: (place: MapPlace, trigger: HTMLElement) => void; travel?: (place: MapPlace) => string | null;
 }) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -211,7 +212,7 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, travel }: 
             </span>
           </button>
           {place.credit && <details className="weig-map-photo-credit"><summary aria-label={label("קרדיט לתמונה", "Photo credit")}>ⓘ</summary><small>{place.credit}</small></details>}
-          <div className="weig-map-card-action discover-feed-caption"><button type="button" className="weig-map-card-details" onClick={() => { setExpanded(false); onSelect(place); }} aria-label={`${label("פרטים על", "Details for")} ${he ? place.he : place.en}`}>{label("לגלות את המקום", "Explore place")}{he ? <ArrowLeft size={18}/> : <ArrowRight size={18}/>}</button></div>
+          <div className="weig-map-card-action discover-feed-caption">{onAskAi&&<PlaceAiButton he={he} name={he?place.he:place.en} onClick={trigger=>{setExpanded(false);onAskAi(place,trigger)}}/>}<button type="button" className="weig-map-card-details" onClick={() => { setExpanded(false); onSelect(place); }} aria-label={`${label("פרטים על", "Details for")} ${he ? place.he : place.en}`}>{label("לגלות את המקום", "Explore place")}{he ? <ArrowLeft size={18}/> : <ArrowRight size={18}/>}</button></div>
         </div>)}
       </div>
       <span className="weig-map-sr-status" role="status" aria-live="polite">{focused && (he ? focused.he : focused.en)}</span>

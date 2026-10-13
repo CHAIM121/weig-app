@@ -26,7 +26,7 @@ export function WeigAiChat({ he, place: initialPlace, onClose }: { he: boolean; 
  };
  const suggestions = place ? [label("מה כדאי לדעת על המקום?", "What should I know about this place?"), label("האם המקום מתאים לביקור עם ילדים?", "Is it suitable for a visit with children?"), label("עזור לי לתכנן ביקור כאן", "Help me plan a visit here")] : [label("עזור לי לתכנן את היום", "Help me plan my day"), label("אני רוצה להתייעץ איתך", "I'd like your advice"), label("איך לתכנן תקציב לטיול?", "How do I plan a travel budget?")];
  return <section className="weig-ai-chat" dir={he ? "rtl" : "ltr"}>
-  <header className="weig-ai-header"><span className="weig-ai-mark"><Sparkles size={22}/></span><div><h1>WEIG AI</h1><p>{label("שואלים, מתייעצים ומתכננים · מחובר לרשת", "Ask, consult and plan · Web connected")}</p></div><button type="button" disabled={busy} onClick={() => { setMessages([]); setPlace(undefined); setError(""); setValue(""); }} aria-label={label("שיחה חדשה", "New conversation")}><Plus size={20}/></button>{onClose && <button type="button" onClick={onClose} aria-label={label("סגירה", "Close")}><X size={21}/></button>}</header>
+  <header className="weig-ai-header"><span className="weig-ai-mark"><Sparkles size={22}/></span><div><h1>WEIG AI</h1><p>{label("שואלים, מתייעצים ומתכננים · מחובר לרשת", "Ask, consult and plan · Web connected")}</p></div><button type="button" disabled={busy} onClick={() => { setMessages([]); setPlace(initialPlace); setError(""); setValue(""); }} aria-label={label("שיחה חדשה", "New conversation")}><Plus size={20}/></button>{onClose && <button type="button" onClick={onClose} aria-label={label("סגירה", "Close")}><X size={21}/></button>}</header>
   {place && <div className="weig-ai-place"><MapPin size={17}/><div><strong>{place.name}</strong><small>{place.address}</small></div><button type="button" disabled={busy} onClick={() => { setPlace(undefined); setMessages([]); setError(""); }} aria-label={label("הסרת המקום מהשיחה", "Remove place context")}><X size={16}/></button></div>}
   <div className="weig-ai-body">{!messages.length && <div className="weig-ai-welcome"><span className="weig-ai-orb"><Sparkles size={32}/></span><h2>{place ? label("מה תרצו לדעת על המקום?", "What would you like to know?") : label("במה אפשר לעזור?", "How can I help?")}</h2><p>{label("אפשר לשאול, להתייעץ ולחשוב יחד על הצעד הבא.", "Ask a question, get advice and think through your next step.")}</p><div className="weig-ai-suggestions">{suggestions.map(text => <button type="button" key={text} disabled={busy} onClick={() => void send(text)}>{text}<Sparkles size={15}/></button>)}</div></div>}
    <div className="weig-ai-messages" role="log" aria-label={label("השיחה עם AI", "AI conversation")} aria-live="polite">{messages.map((message, i) => <div key={i} className={`weig-ai-message ${message.role}`}>{message.role === "assistant" && <Sparkles size={17}/>}<p><CitedAnswer content={message.content} citations={message.citations}/></p></div>)}{busy && <div className="weig-ai-thinking" role="status"><Sparkles size={16}/>{label("בודק ומכין תשובה…", "Checking and preparing an answer…")}<span>•••</span></div>}</div>
@@ -60,8 +60,42 @@ function CitedAnswer({ content, citations = [] }: { content: string; citations?:
  }
  parts.push(<LinkedText key={`text-${cursor}`} text={content.slice(cursor)}/>); return <>{parts}</>;
 }
-export function PlaceAiDialog({ he, place, close }: { he: boolean; place: AiPlace; close: () => void }) {
- const dialog = useRef<HTMLDialogElement>(null);
- useEffect(() => { const element = dialog.current; const previous = document.body.style.overflow; document.body.style.overflow = "hidden"; element?.showModal(); return () => { element?.close(); document.body.style.overflow = previous; }; }, []);
- return <dialog ref={dialog} className="weig-ai-dialog" aria-label={he ? `שיחה על ${place.name}` : `Chat about ${place.name}`} onCancel={event => { event.preventDefault(); close(); }} onClick={event => { if (event.target === event.currentTarget) close(); }}><WeigAiChat he={he} place={place} onClose={close}/></dialog>;
+export function PlaceAiButton({ he, name, onClick }: { he: boolean; name: string; onClick: (trigger: HTMLButtonElement) => void }) {
+ return <button type="button" className="discover-ai-button" aria-label={he ? `שאלו AI על ${name}` : `Ask AI about ${name}`} aria-haspopup="dialog" onClick={event=>onClick(event.currentTarget)}><span className="discover-ai-glyph"><Sparkles size={18}/></span><span>{he ? "שאלו על המקום" : "Ask about this place"}</span><small>AI</small></button>;
+}
+export function PlaceAiDialog({ he, place, close, anchor }: { he: boolean; place: AiPlace; close: () => void; anchor?: HTMLElement | null }) {
+ const panel=useRef<HTMLElement>(null);
+ const closeRef=useRef(close);closeRef.current=close;
+ const [mobile,setMobile]=useState(false);
+ const [position,setPosition]=useState({left:16,top:90});
+ useEffect(()=>{
+  const previousFocus=document.activeElement as HTMLElement|null;
+  const media=window.matchMedia("(max-width: 1349px)");
+  const update=()=>{
+   setMobile(media.matches);
+   const current=anchor?.isConnected?anchor:document.querySelector<HTMLElement>(`[data-place-id="${CSS.escape(place.id)}"]`);
+   const rect=current?.getBoundingClientRect();
+   const width=380,gap=20;
+   const app=document.querySelector<HTMLElement>(".has-place-ai")?.getBoundingClientRect();
+   let left=app ? app.left-width-gap : rect ? rect.left-width-gap : 20;
+   if(left<16&&rect&&rect.right+gap+width<=window.innerWidth-16)left=rect.right+gap;
+   setPosition({left:Math.max(16,Math.min(left,window.innerWidth-width-16)),top:Math.max(84,Math.min(rect?.top??90,window.innerHeight-740))});
+  };
+  update();media.addEventListener("change",update);window.addEventListener("resize",update);window.addEventListener("scroll",update,true);
+  panel.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus({preventScroll:true});
+  const keydown=(event:KeyboardEvent)=>{
+   if(event.key==="Escape"){event.preventDefault();closeRef.current()}
+   if(event.key==="Tab"&&media.matches){
+    const items=panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),textarea,a[href]');
+    if(!items?.length)return;
+    const first=items[0],last=items[items.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+   }
+  };
+  document.addEventListener("keydown",keydown);
+  return()=>{media.removeEventListener("change",update);window.removeEventListener("resize",update);window.removeEventListener("scroll",update,true);document.removeEventListener("keydown",keydown);if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true})};
+ },[anchor]);
+ useEffect(()=>{if(!mobile)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[mobile]);
+ return <div className="weig-ai-panel-wrap" dir={he?"rtl":"ltr"}>{mobile&&<button type="button" className="weig-ai-panel-backdrop" tabIndex={-1} aria-label={he?"סגירה":"Close"} onClick={close}/>}<section ref={panel} className="weig-ai-panel" style={mobile?undefined:position} role="dialog" aria-modal={mobile||undefined} aria-label={he?`שיחה על ${place.name}`:`Chat about ${place.name}`}><WeigAiChat he={he} place={place} onClose={close}/></section></div>;
 }
