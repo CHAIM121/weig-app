@@ -7,9 +7,9 @@ import {KashrutMonitor} from "./kashrut-monitor";
 import styles from "./kashrut-admin.module.css";
 type Data=Record<Entity,RecordRow[]>;
 type Snapshot={data:Data;audit:{id:number;table_name:string;operation:string;created_at:string}[];truncated:boolean};
-const titles:Record<Entity,string>={agencies:"גופים ורשויות",classifications:"מילון סיווגים",sources:"מקורות מידע",relationships:"קשרים בין גופים",reviews:"תור בדיקה"};
+const titles:Record<Entity,string>={agencies:"גופי כשרות ואנשי קשר",classifications:"מילון סיווגים",sources:"מקורות מידע",relationships:"קשרים בין גופים",reviews:"תור בדיקה"};
 const tableNames:Record<string,string>={weig_kashrut_agencies:"גוף",weig_kashrut_classifications:"סיווג",weig_kashrut_registry_sources:"מקור",weig_kashrut_review_tasks:"בדיקה",weig_kashrut_agency_relationships:"קשר"};
-export function KashrutAdmin({locale}:{locale:string}){
+export function KashrutAdmin({locale,embedded=false}:{locale:string;embedded?:boolean}){
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null),[loading,setLoading]=useState(true),[gate,setGate]=useState(""),[error,setError]=useState(""),[success,setSuccess]=useState("");
  const [tab,setTab]=useState<Entity|"audit"|"monitor">("agencies"),[query,setQuery]=useState(""),[filter,setFilter]=useState("");
  const [editing,setEditing]=useState<{entity:Entity;row:RecordRow|null;values:Record<string,unknown>}|null>(null),[busy,setBusy]=useState(false);
@@ -30,14 +30,14 @@ export function KashrutAdmin({locale}:{locale:string}){
  const display=(value:unknown)=>labels[String(value)]??String(value??"");
  const name=(entity:Entity,id:unknown)=>String(snapshot?.data[entity]?.find(r=>r.id===id)?.name_he??snapshot?.data[entity]?.find(r=>r.id===id)?.title??"פריט מקושר");
  const rows=tab!=="audit"&&tab!=="monitor"?(snapshot?.data[tab]??[]).filter(r=>(!query||[r.name_he,r.name_en,r.code,r.title,r.notes,r.coverage,...(Array.isArray(r.aliases)?r.aliases:[])].join(" ").toLowerCase().includes(query.toLowerCase()))&&(!filter||r.status===filter||r.category===filter)):[];
- return <div className={styles.page} dir="rtl">
-  <header className={styles.header}><div><span className={styles.eyebrow}>WEIG · מערכת ניהול</span><h1>מקורות וסיווגי כשרות</h1><p>מאגר גופים, סיווגים ומקורות רשמיים. אימות זהות גוף או מקור אינו אימות תעודת כשרות של עסק.</p></div><button className={styles.button} onClick={()=>void load()} disabled={loading||busy}>רענון</button></header>
+ return <div className={embedded?styles.embedded:styles.page} dir="rtl">
+  <header className={styles.header}><div><span className={styles.eyebrow}>WEIG · מערכת ניהול</span><h1>{embedded?"גופי הכשרות ואנשי קשר":"מקורות וסיווגי כשרות"}</h1><p>מאגר גופים, סיווגים ומקורות רשמיים. אימות זהות גוף או מקור אינו אימות תעודת כשרות של עסק.</p></div><button className={styles.button} onClick={()=>void load()} disabled={loading||busy}>רענון</button></header>
   {loading&&!snapshot&&<p role="status">טוענים את מאגר הניהול…</p>}
   {gate&&<section className={styles.gate}><h2>{gate==="LOGIN_REQUIRED"?"כניסה למערכת הניהול":"נדרשת הרשאת ניהול"}</h2><p>{gate==="LOGIN_REQUIRED"?"התחברו לחשבון שהוגדר כמנהל כשרות כדי לפתוח את המאגר.":"החשבון מחובר, אך טרם הוגדר כמנהל כשרות. הרשאות ניתנות על ידי בעל הפרויקט לחשבון מסוים."}</p><Link className={`${styles.button} ${styles.primary}`} href={`/${locale}/auth`}>כניסה לחשבון</Link></section>}
   {error&&<p className={styles.error} role="alert">{error}</p>}{success&&<p className={styles.success} role="status">{success}</p>}
   {snapshot&&<>
    <div className={styles.stats}>{(Object.keys(titles) as Entity[]).map(key=><div className={styles.stat} key={key}><strong>{key==="reviews"?(snapshot.data[key]??[]).filter(r=>r.status==="open"||r.status==="in_review").length:(snapshot.data[key]??[]).length}</strong><span>{key==="reviews"?"בדיקות פתוחות":titles[key]}</span></div>)}</div>
-   <p className={styles.note}>שלב הקמת התשתית. איסוף לפי אזורים וסריקות מתוזמנות יוגדרו לאחר השלמת מערכת המקורות. המקורות שיובאו בעבר מסומנים כיבוא ידני.</p>
+   <p className={styles.note}>ניתן לעדכן פרטי גוף כשרות, טלפונים, אימיילים ואנשי קשר. רישום גוף או מקור כמאומת אינו אישור לכשרות או לתוקף של חנות מסוימת.</p>
    {snapshot.truncated&&<p className={styles.note}>מוצגות עד 1,000 רשומות בכל מאגר. יש לצמצם את המאגר או להוסיף עימוד לפני ניהול כמויות גדולות יותר.</p>}
    <nav className={styles.tabs} aria-label="מאגרי ניהול">{(Object.keys(titles) as Entity[]).map(key=><button className={styles.tab} key={key} aria-pressed={tab===key} onClick={()=>{setTab(key);setFilter("");setQuery("");setEditing(null)}}>{titles[key]}</button>)}<button className={styles.tab} aria-pressed={tab==="audit"} onClick={()=>{setTab("audit");setEditing(null)}}>היסטוריית שינויים</button><button className={styles.tab} aria-pressed={tab==="monitor"} onClick={()=>{setTab("monitor");setEditing(null)}}>בדיקות המאגר</button></nav>
    {tab!=="audit"&&tab!=="monitor"&&<div className={styles.toolbar}><input aria-label="חיפוש במאגר" placeholder="חיפוש לפי שם, מזהה או פרטים…" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="סינון רשומות" value={filter} onChange={e=>setFilter(e.target.value)}><option value="">כל הרשומות</option>{(tab==="classifications"?fields.classifications.find(f=>f.key==="category")!.options:fields[tab].find(f=>f.key==="status")!.options)?.map(o=><option key={o} value={o}>{display(o)}</option>)}</select><button className={`${styles.button} ${styles.primary}`} onClick={()=>edit(tab,null)}>הוספת {tab==="agencies"?"גוף":tab==="sources"?"מקור":tab==="reviews"?"בדיקה":tab==="relationships"?"קשר":"סיווג"}</button></div>}
