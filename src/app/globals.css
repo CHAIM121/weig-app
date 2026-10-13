@@ -485,3 +485,4 @@ body{background:var(--paper);color:var(--ink)}
  .app-content:has(.has-place-ai){max-width:1600px}
  .discover-app.has-place-ai{width:calc(100% - 410px);margin-left:410px;margin-right:0}
 }
+@media(min-width:1350px){body:has(.weig-ai-panel-wrap) .discover-detail-wrap{padding-left:410px;padding-right:20px}}
