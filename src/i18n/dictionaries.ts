@@ -1,4 +1,5 @@
 const he = {
+ placeSearch:{placeholder:"איזה מקום מתחשק לך לגלות?",suggestions:"הצעות למקומות",submit:"חיפוש",ownSource:"פרטי מקום שנמסרו ל־WEIG"},
  common:{appName:"WEIG",primaryNav:"ניווט ראשי",menu:"תפריט",close:"סגירה",demo:"מצב הדגמה",back:"חזרה",save:"שמירה",cancel:"ביטול",notConnected:"השירות החיצוני עדיין לא מחובר"},
  nav:{places:"מקומות",expenses:"הוצאות",calls:"שיחה",ai:"AI",settings:"הגדרות"},
  menu:{signedAs:"מחובר/ת בתור",guest:"משתמש/ת בהדגמה",future:"אפשרויות נוספות יופיעו כאן בעתיד"},
@@ -9,6 +10,7 @@ const he = {
  ai:{title:"WEIG AI",newChat:"שיחה חדשה",history:"שיחות קודמות",welcome:"איך אפשר לעזור היום?",subtitle:"אפשר לשאול על תכנון, מקומות, הוצאות ושיחות — בכפוף להרשאות שלכם.",placeholder:"כתבו הודעה ל־WEIG AI",send:"שליחה",access:"גישה לנתוני האפליקציה",accessBody:"העוזר יקבל רק מידע שאישרתם ובהתאם לחשבון שלכם.",personal:"התאמה אישית",personalBody:"העדפות יישמרו רק לאחר חיבור מאובטח ואישור מפורש.",empty:"אין עדיין שיחות קודמות",suggestions:["תכנן לי יום טיול","עזור לחלק הוצאה","מצא אוכל כשר"]}
 };
 const en = {
+ placeSearch:{placeholder:"What would you like to discover?",suggestions:"Place suggestions",submit:"Search",ownSource:"Place details contributed to WEIG"},
  common:{appName:"WEIG",primaryNav:"Primary navigation",menu:"Menu",close:"Close",demo:"Demo mode",back:"Back",save:"Save",cancel:"Cancel",notConnected:"The external service is not connected yet"},
  nav:{places:"Places",expenses:"Expenses",calls:"Call",ai:"AI",settings:"Settings"},
  menu:{signedAs:"Signed in as",guest:"Demo user",future:"More options may appear here in the future"},

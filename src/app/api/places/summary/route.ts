@@ -1,3 +1,5 @@
+import { ownPlace, presentOwn } from "@/modules/places/server/local";
+import { googleFetch } from "@/modules/places/server/google";
 import { NextRequest, NextResponse } from "next/server";
 import {catalogPlace,presentCatalogPlace} from "@/modules/places/catalog";
 
@@ -10,6 +12,10 @@ export async function GET(request: NextRequest) {
   if (!/^[A-Za-z0-9_-]{5,200}$/.test(id)) {
     return NextResponse.json({ error: "INVALID_PLACE" }, { status: 400, headers });
   }
+  try {
+    const own = await ownPlace(id);
+    if (own) return NextResponse.json({ place: presentOwn(own) }, { headers });
+  } catch { return NextResponse.json({ error: "PLACES_DATABASE_UNAVAILABLE" }, { status: 503, headers }); }
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if(id.startsWith("weig_")) {
     try {const place=await catalogPlace(id);return place?NextResponse.json({place:presentCatalogPlace(place)},{headers}):NextResponse.json({error:"PLACE_NOT_FOUND"},{status:404,headers});}
@@ -19,8 +25,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const locale = request.nextUrl.searchParams.get("locale") === "en" ? "en" : "he";
-    const response = await fetch(`https://places.googleapis.com/v1/places/${id}?languageCode=${locale}`, {
-      headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "id,displayName,formattedAddress,location,googleMapsUri,photos,attributions,addressComponents,primaryType" },
+    const response = await googleFetch(`https://places.googleapis.com/v1/places/${id}?languageCode=${locale}`, {
+      headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "id,displayName,formattedAddress,location,googleMapsUri,attributions,addressComponents,primaryType" },
       cache: "no-store",
       signal: AbortSignal.timeout(8500),
     });
@@ -44,8 +50,8 @@ export async function GET(request: NextRequest) {
       theme: /restaurant|cafe|bakery|food|grocery|supermarket|ice_cream|sandwich|dessert/.test(place.primaryType ?? "") ? "food" : "other",
       location: lat != null && lng != null ? { latitude: lat, longitude: lng } : null,
       mapsUrl: place.googleMapsUri ?? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${encodeURIComponent(id)}`,
-      photoName: place.photos?.[0]?.name ?? null,
-      photoCredits: place.photos?.[0]?.authorAttributions ?? [],
+      photoName: null,
+      photoCredits: [],
       attributions: place.attributions ?? [],
     } }, { headers });
   } catch {

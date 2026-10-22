@@ -1,5 +1,5 @@
 # Current architecture — WEIG
-Reviewed 2026-10-22 at main f722229abf1e4dbb6e044874562b8aabeb0286fa.
+Baseline reviewed 2026-10-22 at main f722229abf1e4dbb6e044874562b8aabeb0286fa.
 
 - **Stack:** Next.js 15 App Router, React 19, TypeScript strict, Tailwind 4. Routes under src/app/[locale]. No AGENTS.md found in the repository tree.
 - **Database/auth:** Supabase Postgres with SQL migrations and RLS. Supabase Auth via @supabase/ssr cookie sessions; profiles reference auth.users. Existing catalog tables weig_places, weig_place_sources, weig_place_claims are distinct from Google content; catalog discovery endpoints are disabled. Existing managers are authorized through weig_kashrut_managers membership, not ADMIN_EMAILS.
@@ -7,11 +7,9 @@ Reviewed 2026-10-22 at main f722229abf1e4dbb6e044874562b8aabeb0286fa.
 - **Google:** GET /api/places performs uncached server Text Search; discovery fans out to four theme searches and may resolve a city first. Search currently requests photo references. /api/places/details fetches details each time and optionally reviews; /api/places/photo redirects to Google photo media without storage. places-experience.tsx turns search photos into feed image requests and has a detail gallery. Additional Google calls occur in summary, travel, kashrut, AI chat and src/lib/ai/tools.ts. Browser map uses a separate public Maps key.
 - **AI:** Server /api/ai/chat calls OpenAI Responses with OPENAI_MODEL (default gpt-5-mini), web search and a Places tool. Phase 4 is outside this change.
 - **Env names in code:** NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, GOOGLE_PLACES_API_KEY, NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, OPENAI_API_KEY, OPENAI_MODEL; import tooling also uses SUPABASE_SERVICE_ROLE_KEY. .env.example includes SUPABASE_TEST_URL and SUPABASE_TEST_ANON_KEY. Values/production configuration were not inspected.
-- **Checks:** npm run typecheck; npm test (Vitest); npm run build; npm run test:rls requires test database configuration. No lint script exists. No runtime change or migration made; checks not run for this documentation-only review.
+- **Checks:** npm run typecheck; npm test (Vitest); npm run build; npm run test:rls requires test database configuration. No lint script exists. Baseline review was read-only. The implemented Phase 1 adaptation and validation are described below.
 
-## Phase 1 decisions required before implementation
-The supplied spec says to stop on conflicts and record questions in the PR description.
-1. **Content retention:** docs/places-catalog.md separates independent data from restricted Google content. Google Places policy does not grant blanket 30-day caching for names, ratings, hours or photos. Confirm an applicable contractual permission, or approve redesign around independent/licensed data and permitted Google IDs rather than storing the requested payloads/images. See https://developers.google.com/maps/documentation/places/web-service/policies
-2. **Billing:** rating and userRatingCount in the proposed search mask trigger Enterprise, not the cheapest tier. Propose moving ratings to details and preserving attribution fields. See https://developers.google.com/maps/documentation/places/web-service/text-search
-3. **Compatibility:** Current IDs/categories/query parameters differ from the spec. Propose adapters preserving Google IDs in saved places/feedback, existing category IDs and existing UI endpoints; do not destructively replace the independent catalog.
-4. **Cache correctness if retention is authorized:** Include radius, locale and search semantics in keys; track details_fetched_at separately from search sync; missing optional phone/website must not repeatedly refetch. Add single-flight locking and reliable background revalidation.
+## Phase 1 adaptation in this PR
+The owner approved independent WEIG data plus permitted coordinates, with other Google content fetched live. Implementation and retention details are in docs/PHASE_1.md. The new path serves eligible WEIG records locally, suppresses Google list photos, adds local-first autocomplete and wraps server Google calls for in-flight de-duplication and metrics. The old search provider remains behind PLACES_LEGACY_MODE=true. Category/endpoint adapters preserve existing consumers and IDs.
+
+The requested ratings remain in list masks and therefore use Enterprise search billing. A completed-response 10-minute RAM cache was not introduced: only overlapping requests are coalesced, since volatile storage would still cache Google content. No production migration or deployment has been performed; the PR remains open for owner review. Phase 2/3 write workflows and Phase 4 AI changes remain outside scope.

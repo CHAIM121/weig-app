@@ -47,7 +47,6 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, onAskAi, t
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [mapState, setMapState] = useState<"loading" | "ready" | "fallback">("loading");
-  const [ratings, setRatings] = useState<Record<string, number | null>>({});
   const [locationMessage, setLocationMessage] = useState("");
   const [locating, setLocating] = useState(false);
   const [embedCenter, setEmbedCenter] = useState<Point | null>(null);
@@ -76,17 +75,6 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, onAskAi, t
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  useEffect(() => {
-    if (!focused?.mapsUrl || focused.rating != null || focused.id in ratings) return;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      fetch(`/api/places/details?${new URLSearchParams({ id: focused.id, locale: he ? "he" : "en" })}`, { signal: controller.signal })
-        .then(response => { if (!response.ok) throw new Error("Rating unavailable"); return response.json(); })
-        .then(data => { if (!controller.signal.aborted) setRatings(previous => ({ ...previous, [focused.id]: typeof data.rating === "number" ? data.rating : null })); })
-        .catch(() => {});
-    }, 250);
-    return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [focused, he, ratings]);
 
   const recenter = () => {
     const move = (position: Point) => {
@@ -205,7 +193,7 @@ export function GooglePlacesMap({ places, he, center, city, onSelect, onAskAi, t
         {places.map((place, index) => <div key={place.id} className={`weig-map-card${focused?.id === place.id ? " is-selected" : ""}`}>
           <button ref={node => { if (node) cards.current.set(place.id, node); else cards.current.delete(place.id); }} type="button" className="weig-map-card-select" aria-label={`${he ? place.he : place.en} ${he ? place.areaHe : place.areaEn} ${index + 1}`} aria-pressed={focused?.id === place.id} onClick={() => setFocusedId(place.id)}>
             {place.image && <img src={place.image} alt="" loading="lazy"/>}
-            <span className="weig-map-card-copy"><span className="weig-map-card-head"><strong>{he ? place.he : place.en}</strong><span className="weig-map-card-rating" dir="ltr" aria-label={label("דירוג Google", "Google rating")}><Star size={13} fill="currentColor"/>{(place.rating ?? ratings[place.id])?.toFixed(1) ?? "—"}</span></span><span>{he ? place.areaHe : place.areaEn}</span>
+            <span className="weig-map-card-copy"><span className="weig-map-card-head"><strong>{he ? place.he : place.en}</strong><span className="weig-map-card-rating" dir="ltr" aria-label={label("דירוג Google", "Google rating")}><Star size={13} fill="currentColor"/>{place.rating?.toFixed(1) ?? "—"}</span></span><span>{he ? place.areaHe : place.areaEn}</span>
               <span className="weig-map-distance">{travel?.(place) ?? label("מרחק אינו זמין", "Distance unavailable")}</span>
               {place.openNow != null && <span className={place.openNow ? "is-open" : "is-closed"}>{place.openNow ? label("פתוח עכשיו", "Open now") : label("סגור עכשיו", "Closed now")}</span>}
 

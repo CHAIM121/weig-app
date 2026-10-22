@@ -23,14 +23,14 @@ describe("automatic lookup",()=>{
  it("resolves an unlinked place against server-fetched Google facts, without public writes",async()=>{
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL","https://test.supabase.co");vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY","test");vi.stubEnv("GOOGLE_PLACES_API_KEY","test");
   const official={...candidate,certifier:"רבנות פתח תקווה",level:"רגילה",food_type:null,source_label:"כשרות רגילה בתוקף",evidence_type:"official_listing",source_url:"https://mpt.org.il/directory-kashrut/listing/test/",certificate_url:null,valid_until:null,verified_at:null,fetched_at:new Date().toISOString(),source_updated_at:null};
-  const fetcher=vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response(JSON.stringify({id:"ChIJ_test",displayName:{text:place.name},nationalPhoneNumber:place.phone,addressComponents:[{longText:place.city,types:["locality"]},{shortText:"IL",types:["country"]},{longText:place.street,types:["route"]},{longText:place.number,types:["street_number"]}]}))).mockResolvedValueOnce(new Response(JSON.stringify([official])));
+  const fetcher=vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response(JSON.stringify({id:"ChIJ_test",displayName:{text:place.name},nationalPhoneNumber:place.phone,addressComponents:[{longText:place.city,types:["locality"]},{shortText:"IL",types:["country"]},{longText:place.street,types:["route"]},{longText:place.number,types:["street_number"]}]}))).mockResolvedValueOnce(new Response(JSON.stringify([official])));
   const response=await GET(new NextRequest("http://localhost/api/places/kashrut?id=ChIJ_test&name=fake"));
   const result=await response.json();expect(result.evidence[0].certifier).toBe("רבנות פתח תקווה");expect(result.evidence[0].status).toBe("listed");
-  expect(result.evidence[0].business_phone).toBeUndefined();expect(fetcher.mock.calls[2][0]).toContain("rpc/weig_find_kashrut_candidates");expect(fetcher.mock.calls[2][1]?.body).toBe(JSON.stringify({p_city:place.city,p_country:"IL"}));
+  expect(result.evidence[0].business_phone).toBeUndefined();expect(fetcher.mock.calls[3][0]).toContain("rpc/weig_find_kashrut_candidates");expect(fetcher.mock.calls[3][1]?.body).toBe(JSON.stringify({p_city:place.city,p_country:"IL"}));
  });
  it("does not claim missing when Google identity lookup fails",async()=>{
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL","https://test.supabase.co");vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY","test");vi.stubEnv("GOOGLE_PLACES_API_KEY","test");
-  vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response("",{status:503}));
+  vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response("",{status:503}));
   expect((await GET(new NextRequest("http://localhost/api/places/kashrut?id=ChIJ_test"))).status).toBe(503);
  });
 });

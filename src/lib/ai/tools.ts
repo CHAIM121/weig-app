@@ -1,3 +1,4 @@
+import { googleFetch } from "@/modules/places/server/google";
 export type Citation = { start: number; end: number; url: string; title: string };
 type OutputPart = { type: string; text?: string; annotations?: { type: string; start_index: number; end_index: number; url: string; title: string }[] };
 export type OutputItem = { type?: string; name?: string; call_id?: string; arguments?: string; content?: OutputPart[] };
@@ -12,7 +13,7 @@ export async function searchPlaces(argumentsJson: string, locale: string, signal
  const key = process.env.GOOGLE_PLACES_API_KEY;
  if (!key) return { error: "PLACES_NOT_CONFIGURED" };
  try {
-  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+  const response = await googleFetch("https://places.googleapis.com/v1/places:searchText", {
    method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.currentOpeningHours,places.googleMapsUri,places.websiteUri" },
    body: JSON.stringify({ textQuery: query.trim(), languageCode: locale, pageSize: 5 }), cache: "no-store", signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
   });

@@ -21,8 +21,8 @@ type PublicFeedback = {
   display_name: string;
 };
 
-const VISITS_KEY = "weig-pending-visits-v1";
-const AFTER_AUTH_KEY = "weig-feedback-after-auth-v1";
+const VISITS_KEY = "weig-pending-visits-v2";
+const AFTER_AUTH_KEY = "weig-feedback-after-auth-v2";
 const TWO_HOURS = 2 * 60 * 60 * 1000;
 
 function readPendingVisits(): PendingVisit[] {
@@ -41,9 +41,13 @@ function readPendingVisits(): PendingVisit[] {
   }
 }
 
+export function persistentPlaceSnapshot(place: FeedbackPlaceSnapshot): FeedbackPlaceSnapshot {
+  return place.id.startsWith("weig_") ? place : { id: place.id, name: place.id, area: "", mapsUrl: "" };
+}
+
 function writePendingVisits(visits: PendingVisit[]) {
   try {
-    localStorage.setItem(VISITS_KEY, JSON.stringify(visits.slice(-12)));
+    localStorage.setItem(VISITS_KEY, JSON.stringify(visits.slice(-12).map(p => ({ ...persistentPlaceSnapshot(p), promptAfter: p.promptAfter }))));
   } catch {}
 }
 
@@ -59,7 +63,7 @@ function forgetPendingVisit(placeId: string) {
 
 function saveAfterAuth(place: FeedbackPlaceSnapshot) {
   try {
-    localStorage.setItem(AFTER_AUTH_KEY, JSON.stringify(place));
+    localStorage.setItem(AFTER_AUTH_KEY, JSON.stringify(persistentPlaceSnapshot(place)));
   } catch {}
 }
 
@@ -81,6 +85,7 @@ function clearAfterAuth() {
 
 export function usePlaceFeedback(he: boolean) {
   const client = useMemo(createAuthBrowserClient, []);
+  useEffect(() => { try { localStorage.removeItem("weig-pending-visits-v1"); localStorage.removeItem("weig-feedback-after-auth-v1"); } catch {} }, []);
   const [user, setUser] = useState<User | null>(null);
   const [dueVisit, setDueVisit] = useState<FeedbackPlaceSnapshot | null>(null);
   const [ratingPlace, setRatingPlace] = useState<FeedbackPlaceSnapshot | null>(null);
@@ -136,9 +141,9 @@ export function usePlaceFeedback(he: boolean) {
     void client.from("place_visit_prompts").upsert({
       user_id: user.id,
       place_id: place.id,
-      place_name: place.name,
-      place_area: place.area || null,
-      maps_url: place.mapsUrl || null,
+      place_name: persistentPlaceSnapshot(place).name,
+      place_area: persistentPlaceSnapshot(place).area || null,
+      maps_url: persistentPlaceSnapshot(place).mapsUrl || null,
       status: "pending",
       navigated_at: new Date().toISOString(),
       prompt_after: new Date(Date.now() + TWO_HOURS).toISOString(),
@@ -245,7 +250,7 @@ export function RatingSheet({
     const { error: saveError } = await client.from("place_feedback").upsert({
       user_id: user.id,
       place_id: place.id,
-      place_name: place.name,
+      place_name: persistentPlaceSnapshot(place).name,
       score: nextScore,
       review: nextReview,
     }, { onConflict: "user_id,place_id" });

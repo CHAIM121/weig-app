@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { googleFetch, SEARCH_FIELDS } from "@/modules/places/server/google";
+import { searchOwn, presentOwn, saveCoordinates, categoryMap } from "@/modules/places/server/local";
+import { GET as legacyGET } from "@/modules/places/server/legacy-search";
 import { findCategory } from "@/modules/places/categories";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +20,7 @@ type GooglePlace = {
 
 const noStore = { "Cache-Control": "no-store" };
 const israelBounds = (lat: number, lng: number) => lat >= 29.4 && lat <= 33.4 && lng >= 34.2 && lng <= 35.95;
-const fieldMask = "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.photos,places.attributions,places.addressComponents,places.primaryType,nextPageToken";
+const fieldMask = SEARCH_FIELDS;
 const themes = [
   { he: "מסלולי טבע ופארקים", en: "nature trails and parks" },
   { he: "בתי כנסת ובתי חב״ד", en: "synagogues and Chabad centers" },
@@ -59,8 +62,8 @@ function present(place: GooglePlace, locale: string, theme?: "nature" | "heritag
     address: areaOnly ? (locale === "he" ? `אזור ${address}` : `${address} area`) : address,
     mapsUrl: place.googleMapsUri ?? `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${encodeURIComponent(place.id!)}`,
     location: place.location ?? null,
-    photoName: place.photos?.[0]?.name ?? null,
-    photoCredits: place.photos?.[0]?.authorAttributions ?? [],
+    photoName: null,
+    photoCredits: [],
     attributions: place.attributions ?? [],
     theme: theme ?? (/restaurant|cafe|bakery|food|grocery/.test(place.primaryType ?? "") ? "food" : /museum|amusement|zoo/.test(place.primaryType ?? "") ? "family" : /synagogue|religious|historic/.test(place.primaryType ?? "") ? "heritage" : /park|natural|tourist_attraction/.test(place.primaryType ?? "") ? "nature" : "other"),
     verification: "unverified" as const,
@@ -68,7 +71,8 @@ function present(place: GooglePlace, locale: string, theme?: "nature" | "heritag
 }
 
 async function search(key: string, textQuery: string, locale: string, center: Center | null, pageSize: number, distanceRank = false, radius = 15000, pageToken?: string) {
-  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+  const acquiredAt = new Date().toISOString();
+  const response = await googleFetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": fieldMask },
     body: JSON.stringify({
@@ -81,7 +85,9 @@ async function search(key: string, textQuery: string, locale: string, center: Ce
     signal: AbortSignal.timeout(8500),
   });
   if (!response.ok) throw new Error(`PLACES_UPSTREAM_${response.status}`);
-  return (await response.json()) as { places?: GooglePlace[]; nextPageToken?: string };
+  const result = (await response.json()) as { places?: GooglePlace[]; nextPageToken?: string };
+  await saveCoordinates(result.places ?? [], acquiredAt);
+  return result;
 }
 
 async function discovery(key: string, locale: string, city: string, center: Center | null, recent: string[], seenIds: string[], page: number, prefer: string | null) {
@@ -129,7 +135,17 @@ async function discovery(key: string, locale: string, city: string, center: Cent
 
 export async function GET(request: NextRequest) {
   if(request.nextUrl.searchParams.get("source")==="weig")return NextResponse.json({error:"CATALOG_DISABLED"},{status:410,headers:noStore});
-  const params = request.nextUrl.searchParams;
+  if (process.env.PLACES_LEGACY_MODE === "true") return legacyGET(request);
+  const params = new URLSearchParams(request.nextUrl.searchParams);
+  const canonical = params.get("category");
+  if (canonical && Object.values(categoryMap).includes(canonical)) params.set("category", Object.keys(categoryMap).find(key => categoryMap[key] === canonical)!);
+  if (params.has("q")) params.set("query", params.get("q")!);
+  const radius = Number(params.get("radius_m") ?? 5000);
+  if (!Number.isFinite(radius) || radius < 1 || radius > 50000 || (params.has("lat") !== params.has("lng"))
+    || (params.has("lat") && (!Number.isFinite(Number(params.get("lat"))) || Math.abs(Number(params.get("lat"))) > 90 || !params.get("lat")))
+    || (params.has("lng") && (!Number.isFinite(Number(params.get("lng"))) || Math.abs(Number(params.get("lng"))) > 180 || !params.get("lng")))) {
+    return NextResponse.json({ error: "INVALID_SEARCH" }, { status: 400, headers: noStore });
+  }
   const category = findCategory(params.get("category") ?? "");
   const query = (params.get("query") ?? "").trim();
   const city = (params.get("city") ?? "").trim();
@@ -145,6 +161,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_SEARCH" }, { status: 400, headers: noStore });
   }
 
+  // Return locally authored eligible places without a single Google request.
+  try {
+    const local = await searchOwn(params);
+    if (local.length) return NextResponse.json({ places: local.map(presentOwn), hasMore: local.length === 12 && page < 5, source: "weig_owned" }, { headers: noStore });
+    // Do not silently switch to paid Google calls when paginating a local-only result set.
+    if (params.get("local") === "1") return NextResponse.json({ places: [], hasMore: false, source: "weig_owned" }, { headers: noStore });
+  } catch {
+    return NextResponse.json({ error: "PLACES_DATABASE_UNAVAILABLE" }, { status: 503, headers: noStore });
+  }
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "PLACES_NOT_CONFIGURED" }, { status: 503, headers: noStore });
 
@@ -168,7 +193,7 @@ export async function GET(request: NextRequest) {
     }
     if (feed && !query) return NextResponse.json({ ...await discovery(apiKey, locale, city, areaCenter, recent, seen, page, prefer), source: "google_places" }, { headers: noStore });
     const term = query || (locale === "he" ? category?.searchHe : category?.searchEn) || "";
-    const searchResult = await search(apiKey, `${term} ${query ? "" : areaCenter ? "" : `ב${city} ישראל`}`.trim(), locale, areaCenter, 12, false, 15000, pageToken || undefined);
+    const searchResult = await search(apiKey, `${term} ${query ? "" : areaCenter ? "" : `ב${city} ישראל`}`.trim(), locale, areaCenter, 12, false, radius, pageToken || undefined);
     const matches = searchResult.places ?? [];
     const first = matches[0];
     const normalized = (value: string) => value.toLocaleLowerCase().replace(/[\s־–-]+/g, " ").trim();
@@ -179,7 +204,7 @@ export async function GET(request: NextRequest) {
       && normalized(first.displayName?.text ?? "").startsWith(normalized(query))) {
       return NextResponse.json({ ...await discovery(apiKey, locale, city, first.location as Center, recent, seen, page, prefer), source: "google_places" }, { headers: noStore });
     }
-    return NextResponse.json({ places: matches.filter(place => validPlace(place) && (!areaCenter || !!query || distanceKm(areaCenter, place.location) <= 30) && !seen.includes(place.id!)).map(place => present(place, locale)), nextPageToken: searchResult.nextPageToken ?? null, hasMore: !!searchResult.nextPageToken, source: "google_places" }, { headers: noStore });
+    return NextResponse.json({ places: matches.filter(place => validPlace(place) && (!areaCenter || distanceKm(areaCenter, place.location) <= radius / 1000) && !seen.includes(place.id!)).map(place => present(place, locale)), nextPageToken: searchResult.nextPageToken ?? null, hasMore: !!searchResult.nextPageToken, source: "google_places" }, { headers: noStore });
   } catch (error) {
     console.error("[places/search] request failed", { feed, page, category: category?.id ?? "all", error: String(error) });
     return NextResponse.json({ error: "PLACES_UPSTREAM_ERROR" }, { status: 502, headers: noStore });
