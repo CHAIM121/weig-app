@@ -1,0 +1,15 @@
+# Current architecture — WEIG
+Baseline reviewed 2026-10-22 at main f722229abf1e4dbb6e044874562b8aabeb0286fa.
+
+- **Stack:** Next.js 15 App Router, React 19, TypeScript strict, Tailwind 4. Routes under src/app/[locale]. No AGENTS.md found in the repository tree.
+- **Database/auth:** Supabase Postgres with SQL migrations and RLS. Supabase Auth via @supabase/ssr cookie sessions; profiles reference auth.users. Existing catalog tables weig_places, weig_place_sources, weig_place_claims are distinct from Google content; catalog discovery endpoints are disabled. Existing managers are authorized through weig_kashrut_managers membership, not ADMIN_EMAILS.
+- **i18n/UI:** Hebrew default, RTL via src/i18n/routing.ts; he/en dictionaries in src/i18n/dictionaries.ts, with additional inline bilingual labels in components. Preserve existing cards, navigation and styling.
+- **Google:** GET /api/places performs uncached server Text Search; discovery fans out to four theme searches and may resolve a city first. Search currently requests photo references. /api/places/details fetches details each time and optionally reviews; /api/places/photo redirects to Google photo media without storage. places-experience.tsx turns search photos into feed image requests and has a detail gallery. Additional Google calls occur in summary, travel, kashrut, AI chat and src/lib/ai/tools.ts. Browser map uses a separate public Maps key.
+- **AI:** Server /api/ai/chat calls OpenAI Responses with OPENAI_MODEL (default gpt-5-mini), web search and a Places tool. Phase 4 is outside this change.
+- **Env names in code:** NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, GOOGLE_PLACES_API_KEY, NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, OPENAI_API_KEY, OPENAI_MODEL; import tooling also uses SUPABASE_SERVICE_ROLE_KEY. .env.example includes SUPABASE_TEST_URL and SUPABASE_TEST_ANON_KEY. Values/production configuration were not inspected.
+- **Checks:** npm run typecheck; npm test (Vitest); npm run build; npm run test:rls requires test database configuration. No lint script exists. Baseline review was read-only. The implemented Phase 1 adaptation and validation are described below.
+
+## Phase 1 adaptation in this PR
+The owner approved independent WEIG data plus permitted coordinates, with other Google content fetched live. Implementation and retention details are in docs/PHASE_1.md. The new path serves eligible WEIG records locally, suppresses Google list photos, adds local-first autocomplete and wraps server Google calls for in-flight de-duplication and metrics. The old search provider remains behind PLACES_LEGACY_MODE=true. Category/endpoint adapters preserve existing consumers and IDs.
+
+The requested ratings remain in list masks and therefore use Enterprise search billing. A completed-response 10-minute RAM cache was not introduced: only overlapping requests are coalesced, since volatile storage would still cache Google content. No production migration or deployment has been performed; the PR remains open for owner review. Phase 2/3 write workflows and Phase 4 AI changes remain outside scope.

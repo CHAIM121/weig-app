@@ -1,3 +1,4 @@
+import { googleFetch } from "@/modules/places/server/google";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (!key) return NextResponse.json({ error: "ROUTES_UNAVAILABLE" }, { status: 503 });
   try {
     const waypoint = (point: Point) => ({ waypoint: { location: { latLng: point } } });
-    const response = await fetch("https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix", {
+    const response = await googleFetch("https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix", {
       method: "POST", cache: "no-store", signal: AbortSignal.timeout(8000),
       headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "destinationIndex,status,condition,distanceMeters,duration" },
       body: JSON.stringify({ origins: [waypoint(origin)], destinations: destinations.map(waypoint), travelMode: "DRIVE", routingPreference: "TRAFFIC_UNAWARE" }),

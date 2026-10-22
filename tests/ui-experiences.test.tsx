@@ -76,7 +76,7 @@ describe("Milestone 2 experiences", () => {
     try {
       const { container } = render(<ModuleExperience module="places" t={t} />);
       expect(await screen.findByRole("status", { name: "Finding places for you…" })).toBeInTheDocument();
-      expect(screen.getByRole("textbox", { name: t.places.search })).toBeInTheDocument();
+      expect(screen.getByRole("combobox", { name: t.places.search })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "For you" })).toBeInTheDocument();
       expect(container.querySelector(".discover-loading-skeleton")).not.toBeInTheDocument();
       expect(container.querySelector(".discover-results-skeleton")).toBeInTheDocument();
@@ -93,11 +93,17 @@ describe("Milestone 2 experiences", () => {
       category: "all", city: "Tel Aviv", manualCity: true, query: "", view: "list",
       selected: { id: "saved-place", he: "Saved place", en: "Saved place", image: "/images/place-placeholder.svg", areaHe: "Tel Aviv", areaEn: "Tel Aviv", maps: "Saved place", type: "views" },
     }));
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async url => {
+      const place = { id: "saved-place", name: "Saved place", address: "Tel Aviv", photoName: null, mapsUrl: "https://www.google.com/maps/search/?api=1&query=Saved%20place" };
+      return new Response(JSON.stringify(String(url).includes("summary") ? { place } : String(url).includes("details") ? { photos: [], hours: [] } : { places: [] }), { status: 200 });
+    });
     try {
       render(<ModuleExperience module="places" t={t} />);
       const dialog = await screen.findByRole("dialog", { name: "Saved place" });
       expect(dialog.parentElement?.parentElement).toBe(document.body);
       expect(document.body.style.overflow).toBe("hidden");
+      expect(JSON.parse(sessionStorage.getItem("weig-places-state-en") || "{}").selected).toBeUndefined();
+      expect(fetcher.mock.calls.some(([url]) => String(url).includes("summary?id=saved-place"))).toBe(true);
       expect(screen.getByRole("button", { name: "I've been here" })).toBeInTheDocument();
       expect(screen.queryByText("WEIG ratings start here")).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Waze" })).toHaveAttribute("href", expect.stringContaining("waze.com/ul?q=Saved%20place"));
@@ -105,6 +111,7 @@ describe("Milestone 2 experiences", () => {
     } finally {
       sessionStorage.removeItem("weig-places-state-en");
       localStorage.removeItem("weig-navigation-preference-v1");
+      fetcher.mockRestore();
     }
   });
 

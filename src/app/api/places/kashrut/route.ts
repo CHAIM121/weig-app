@@ -1,3 +1,5 @@
+import { ownPlace } from "@/modules/places/server/local";
+import { googleFetch } from "@/modules/places/server/google";
 import {NextRequest,NextResponse} from "next/server";
 import {getPublicSupabaseConfig} from "@/lib/supabase/config";
 import {evidenceStatus,type KashrutEvidence} from "@/modules/places/kashrut";
@@ -29,10 +31,12 @@ export async function GET(request:NextRequest){
   }
   const key=process.env.GOOGLE_PLACES_API_KEY;
   if(id.startsWith("weig_")||!key)return reply([]);
+  // Locally authored places use approved WEIG evidence only; no Google identity probes.
+  if(await ownPlace(id))return reply([]);
   // Resolve the canonical Google identity on the server. Never accept user-supplied
   // names, addresses or phones as proof that a place has official supervision.
   const google=async(language:string)=>{
-   const r=await fetch(`https://places.googleapis.com/v1/places/${id}?languageCode=${language}`,{headers:{"X-Goog-Api-Key":key,"X-Goog-FieldMask":"id,displayName,addressComponents,formattedAddress,nationalPhoneNumber"},cache:"no-store",signal:AbortSignal.timeout(8500)});
+   const r=await googleFetch(`https://places.googleapis.com/v1/places/${id}?languageCode=${language}`,{headers:{"X-Goog-Api-Key":key,"X-Goog-FieldMask":"id,displayName,addressComponents,formattedAddress,nationalPhoneNumber"},cache:"no-store",signal:AbortSignal.timeout(8500)});
    if(!r.ok)throw new Error("Google identity unavailable");const p=await r.json() as GooglePlace;
    if(p.id!==id)throw new Error("Unexpected identity");return identity(p);
   };

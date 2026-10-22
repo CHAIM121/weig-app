@@ -1,3 +1,4 @@
+import { googleFetch } from "@/modules/places/server/google";
 import { NextRequest, NextResponse } from "next/server";
 import { extractAnswer, searchPlaces, placeSearchTool, type OutputItem } from "@/lib/ai/tools";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
   let verified: unknown = null;
   if (place && /^[A-Za-z0-9_-]{5,200}$/.test(place.id) && !place.id.startsWith("weig_") && process.env.GOOGLE_PLACES_API_KEY) {
    try {
-    const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(place.id)}?languageCode=${body.locale === "en" ? "en" : "he"}`, {
+    const response = await googleFetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(place.id)}?languageCode=${body.locale === "en" ? "en" : "he"}`, {
      headers: { "X-Goog-Api-Key": process.env.GOOGLE_PLACES_API_KEY, "X-Goog-FieldMask": "id,displayName,formattedAddress,currentOpeningHours,rating,userRatingCount,websiteUri,nationalPhoneNumber" }, cache: "no-store", signal: AbortSignal.timeout(6000),
     });
     if (response.ok) { const details = await response.json(); if (details.id === place.id) verified = details; }

@@ -494,3 +494,12 @@ body{background:var(--paper);color:var(--ink)}
  .discover-app.has-place-ai{width:calc(100% - 410px);margin-left:410px;margin-right:0}
 }
 @media(min-width:1350px){body:has(.weig-ai-panel-wrap) .discover-detail-wrap{padding-left:410px;padding-right:20px}}
+
+.weig-autocomplete { position: relative; flex: 1; min-width: 0; }
+.weig-autocomplete input { width: 100%; }
+.weig-autocomplete ul { position: absolute; inset-inline: 0; top: 100%; z-index: 40; list-style: none; margin: 8px 0 0; padding: 6px; border: 1px solid #e4e7ec; border-radius: 16px; background: white; box-shadow: 0 12px 32px #10182820; max-height: 360px; overflow-y: auto; }
+.weig-autocomplete li { padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+.weig-autocomplete li[aria-selected="true"], .weig-autocomplete li:hover { background: #f2f4f7; }
+.weig-autocomplete strong, .weig-autocomplete small { display: block; }
+.weig-autocomplete small { color: #667085; }
+.weig-autocomplete .weig-autocomplete-attribution { text-align: end; cursor: default; color: #5e5e5e; font-size: 12px; }
